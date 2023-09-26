@@ -1,0 +1,694 @@
+function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
+%  OEFPIL2D Estimates the coefficients of a nonlinear 2D (2-dimensional)
+%  Errors-in-Variables (EIV) model specified by the restrictions on its
+%  parameters.
+%
+%  Here x and y represent the m-dimensional vectors of measurements,
+%  observed values of the random vectors X and Y.
+%
+%  We assume model: X = mu + errorX, Y = nu + errorY & fun(mu,nu,beta) = 0,
+%  where fun(mu,nu,beta) = 0 represent the restrictions on the model
+%  parameters given by the implicit nonlinear (m-dimensional vector)
+%  function.
+%
+%  The covariance matrix (uncertainty matrix) is assumed to be known, U =
+%  [Ux, Uxy; Uyx Uy], where Ux = cov(X,X),  Uxy = cov(X,Y) = Uyx', Uy =
+%  cov(Y,Y).
+%
+% SYNTAX:
+%    result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
+%
+% INPUTS
+%  x       - m-dimensional vector of the observed values of the input
+%            quantity X = mu + errorX.
+%  y       - m-dimensional vector of the observed values of the input
+%            quantity Y = mu + errorY.
+%  U       - (2m x 2m)-dimensional uncertainty matrix, where U = [Ux, Uxy;
+%            Uyx, Uy], or cell structure U = {Ux, Uy, Uxy}, where, Ux -
+%            the (m x m)-dimensional uncertainty matrix of the quantity X,
+%            Uy - the (m x m)-dimensional uncertainty matrix of the
+%            quantity Y, Uxy- the (m x m)-dimensional covariance matrix of
+%            the quantities X and Y. If empty, default value is U =
+%            {eye(m), eye(m), zeros{m}}, where m = length(x).
+%  fun     - the anonymous m-dimensional column vector function of
+%            arguments mu (m-dimensional column vector), nu (m-dimensional
+%            column vector), and beta (p-dimensional vector),  where
+%            fun(mu,nu,beta) = 0 represent the restrictions on the model
+%            parameters. If empty, default value is a (straight-line)
+%            function, fun = @(mu,nu,beta) beta(1) + beta(2)*mu - nu.
+%  mu0     - the m-dimensional vector of the initial values of the
+%            parameter vector mu.
+%  nu0     - the m-dimensional vector of the initial values of the
+%            parameter vector nu.
+%  beta0   - the m-dimensional vector of the initial values of the
+%            parameter vector nu.
+%  options - structure with the following default values of the control
+%            parameters:
+%            options.criterion = 'default';              % 'function'
+%            options.criterion = 'function';             % default
+%            options.criterion = 'weightedresiduals';    % alternative
+%            options.criterion = 'parameterdifferences'; % alternative
+%            options.maxit = 100;
+%            options.tol = 1e-10;
+%            options.delta = eps^(1/3);
+%            options.isPlot = true;
+%            options.alpha = 0.05;
+%            options.isSparse = false;
+%            options.funDiff_mu = [];
+%            options.funDiff_nu = [];
+%            options.funDiff_beta = [];
+%            options.method = 'oefpil';    % default method (oefpilrs1)
+%            options.method = 'oefpilrs1'; % method 1 by Radek Slesinger
+%            options.method = 'oefpilrs2'; % method 2 by Radek Slesinger
+%            options.method = 'oefpilvw';  % simple by Viktor Witkovsky
+%            options.method = 'jacobian';  % method based on linearized
+%                                          % model with Jacobian
+%
+% EXAMPLE 1 (Straight-line calibration)
+%  x      = [4.0030 6.7160 9.3710 12.0530 15.2660 17.3510 ...
+%           20.0360 17.3690 14.7180 12.0390 9.3760 6.6970 4.0080]';
+%  y      = [0 10.1910 20.1020 30.1700 42.2300 50.0500 ...
+%           60.0700 50.0800 40.1150 30.0890 20.0950 10.0700 0]';
+%  fun    = @(mu,nu,beta) beta(1) + beta(2) .* mu - nu;
+%  m      = length(x);
+%  uxA    = sqrt(0.00001444);
+%  uxB    = 0.0014;
+%  Ux     = uxA^2*eye(m) + uxB^2*ones(m);
+%  uyA    = sqrt(0.000036);
+%  uyB    = sqrt(0.000036);
+%  Uy     = uyA^2*eye(m) + uyB^2*ones(m);
+%  Uxy    = [];
+%  mu0    = x;
+%  nu0    = y;
+%  beta0  = [0;1];
+%  options.method = 'oefpilrs2';
+%  options.criterion = 'parameterdifferences';
+%  result = OEFPIL2D(x,y,{Ux,Uy,Uxy},fun,mu0,nu0,beta0,options);
+%
+% EXAMPLE 2 (Oliver-Phar function fit / fun(mu,nu,[0.75;-0.25;1.75]))
+%  x     = [ 0.2505    2.6846    5.1221    7.5628   10.0018 ...
+%            0.2565    2.6858    5.1255    7.5623    9.9952 ...
+%            0.2489    2.6830    5.1271    7.5603   10.0003]';
+%  y     = [ 0.2398    4.9412   14.2090   27.3720   44.0513 ...
+%            0.2110    4.9517   14.2306   27.3937   44.0172 ...
+%            0.2303    4.9406   14.2690   27.3982   44.0611]';
+%  m     = 5;
+%  Ux    = 0.05^2*eye(3*m);
+%  Uyblk = 0.1^2*eye(m)+ 0.05^2*ones(m);
+%  Uy    = blkdiag(Uyblk,Uyblk,Uyblk);
+%  Uxy   = zeros(3*m);
+%  U     = [Ux Uxy; Uxy' Uy];
+%  fun   = @(mu,nu,beta) beta(1).*(mu-beta(2)).^beta(3) - nu;
+%  mu0   = x;
+%  nu0   = y + 0.01*randn;
+%  beta0 = [1 0 2]';
+%  options.method = 'jacobian';
+%  options.funDiff_mu = @(mu,nu,beta) beta(1)*beta(3)*(mu - beta(2)).^(beta(3)-1);
+%  options.funDiff_nu = @(mu,nu,beta) - ones(size(nu));
+%  options.funDiff_beta = @(mu,nu,beta) [(mu-beta(2)).^beta(3), ...
+%                       -beta(1)*beta(3)*(mu-beta(2)).^(beta(3)-1), ...
+%                        beta(1).*(mu-beta(2)).^beta(3).*log(mu-beta(2))];
+%  result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options);
+%
+% EXAMPLE 3 (Flow Meter Calibration / Fractional Polynomial Calibration)
+%  x   = [3.1100e+03 2.5000e+03 1.5000e+03 7.4000e+02 4.2200e+02 ...
+%         1.2000e+02 2.5000e+01 1.0000e+01 7.0000e+00 5.5000e+00 ...
+%         3.2500e+00]';
+%  y   = [-1.4040e+00 -1.1500e+00 -6.0900e-01 2.6200e-01 9.8000e-01 ...
+%         1.9290e+00 1.3400e+00 -2.5400e-01 -1.3800e+00 -2.4220e+00 ...
+%         -5.2990e+00]';
+%  m   = 11;
+%  Ux1 = [9.7000e+00 3.1000e+00 1.1000e+00 2.7000e-01 8.7000e-02 7.1000e-03;
+%         3.1000e+00 6.3000e+00 1.1000e+00 2.7000e-01 8.7000e-02 7.1000e-03;
+%         1.1000e+00 1.1000e+00 2.3000e+00 2.7000e-01 8.7000e-02 7.1000e-03;
+%         2.7000e-01 2.7000e-01 2.7000e-01 5.5000e-01 8.7000e-02 7.1000e-03;
+%         8.7000e-02 8.7000e-02 8.7000e-02 8.7000e-02 1.8000e-01 7.1000e-03;
+%         7.1000e-03 7.1000e-03 7.1000e-03 7.1000e-03 7.1000e-03 1.4000e-02];
+%  Ux2 = [2.5000e-03 2.0000e-04 9.6000e-05 5.9000e-05 2.1000e-05;
+%         2.0000e-04 4.0000e-04 9.6000e-05 5.9000e-05 2.1000e-05;
+%         9.6000e-05 9.6000e-05 2.0000e-04 5.9000e-05 2.1000e-05;
+%         5.9000e-05 5.9000e-05 5.9000e-05 1.2000e-04 2.1000e-05;
+%         2.1000e-05 2.1000e-05 2.1000e-05 2.1000e-05 4.2000e-05];
+%  Ux  = blkdiag(Ux1,Ux2);
+%  Uy  = diag([1.0240e-03 3.7210e-03 2.6010e-03 1.7640e-03 3.7210e-03 ...
+%              4.0960e-03 3.3640e-03 3.2490e-03 6.0840e-03 6.2410e-03 ...
+%              1.0609e-02]);
+%  Uxy = zeros(m);
+%  fun = @(mu,nu,beta) beta(1)*mu.^(-1) + beta(2)*mu.^(-0.5) + ...
+%        beta(3) + beta(4)*mu.^(0.5) + beta(5)*mu - nu;
+%  mu0 = x;
+%  nu0 = y;
+%  beta0 = [0; 0; 0; 0; 1];
+%  options.method = 'oefpil';
+%  options.criterion = 'parameterdifferences';
+%  options.tol = 1e-10;
+%  result = OEFPIL2D(x,y,{Ux,Uy,Uxy},fun,mu0,nu0,beta0,options);
+%
+% REFERENCES
+% [1]  Charvatova Campbell, A., Slesinger, R., Klapetek, P., Chvostekova,
+%      M., Hajzokova, L., Witkovsky, V. and Wimmer, G. Locally best linear
+%      unbiased estimation of regression curves specified by nonlinear
+%      constraints on the model parameters. AMCTMT 2023 - Advanced
+%      Mathematical and Computational Tools in Metrology and Testing 2023
+%      Sarajevo, Bosnia and Herzegovina, 26-28 September 2023.
+
+% Viktor Witkovsky (witkovsky@savba.sk)
+% Ver.: '16-Sep-2023 14:00:41'
+
+%% CHECK THE INPUTS AND OUTPUTS
+narginchk(2, 8);
+if nargin < 8, options = []; end
+if nargin < 7, beta0 = []; end
+if nargin < 6, nu0 = []; end
+if nargin < 5, mu0 = []; end
+if nargin < 4, fun = []; end
+if nargin < 3, U = []; end
+
+if ~isfield(options, 'criterion')
+    options.criterion = 'function';
+end
+
+if ~isfield(options, 'maxit')
+    options.maxit = 100;
+end
+
+if ~isfield(options, 'tol')
+    options.tol = 1e-10;
+end
+
+if ~isfield(options, 'delta')
+    options.delta = eps^(1/3);
+end
+
+if ~isfield(options, 'verbose')
+    options.verbose = 'true';
+end
+
+if ~isfield(options, 'isPlot')
+    options.isPlot = true;
+end
+
+if ~isfield(options, 'alpha')
+    options.alpha = 0.05;
+end
+
+if ~isfield(options, 'isSparse')
+    options.isSparse = false;
+end
+
+
+if ~isfield(options, 'funDiff_mu')
+    options.funDiff_mu = [];
+end
+
+if ~isfield(options, 'funDiff_nu')
+    options.funDiff_nu = [];
+end
+
+if ~isfield(options, 'funDiff_beta')
+    options.funDiff_beta = [];
+end
+
+if ~isfield(options, 'method')
+    options.method = 'oefpil';
+    %     options.method = 'oefpilrs1';
+    %     options.method = 'oefpilrs2';
+    %     options.method = 'oefpilvw';
+    %     options.method = 'jacobian';
+end
+
+x   = x(:);
+y   = y(:);
+m   = length(x);
+idm = 1:m;
+
+if isempty(U)
+    U = speye(2*m);
+else
+    if iscell(U)
+        if isempty(U{1})
+            U{1} = speye(m);
+        else
+            if isvector(U{1})
+                U{1} = sparse(idm,idm,U{1});
+            end
+        end
+        if isempty(U{2})
+            U{2} = speye(m);
+        else
+            if isvector(U{2})
+                U{2} = sparse(idm,idm,U{2});
+            end
+        end
+        if isempty(U{3})
+            U{3} = sparse(m,m);
+        else
+            if isvector(U{3})
+                U{3} = sparse(idm,idm,U{3});
+            end
+        end
+        U = [U{1} U{3}; U{3} U{2}];
+    end
+end
+
+if ~isempty(options.alpha)
+    coverageFactor = norminv(1-options.alpha/2);
+end
+
+if options.isSparse
+    U = sparse(U);
+end
+
+if isempty(fun)
+    fun = @(mu,nu,beta) beta(1) + beta(2) .* mu - nu;
+    X = [ones(m,1) x];
+    beta0 = (X'*X) \ (X'*y);
+end
+
+if isempty(mu0)
+    mu0 = x;
+end
+
+if isempty(nu0)
+    nu0 = y;
+end
+
+if isempty(beta0)
+    error(['Error. The starting values of the vector' ...
+        ' parameter beta must be specified'])
+else
+    p = length(beta0);
+end
+
+idp   = 1:p;
+idB11 = [idm idm];
+idB12 = [idm m+idm];
+idF1  = [idm idm+m m+kron(ones(1,p),idm)];
+idF2  = [idm idm kron(m+idp,ones(1,m))];
+
+%% ALGORITHM
+
+% Lower triangular matrix from Choleski decomposition of U
+L = chol(U,'lower');
+
+maxit = options.maxit;
+tol   = options.tol;
+crit  = 100;
+iter  = 0;
+
+%% Iterations
+if strcmpi(options.method,'jacobian')
+    % method based on locally linearized model by using Jacobian matrix
+    % the method is useful if there is explicite functional relation
+    % between nu amd mu: nu = g(mu,beta), hence the implicite condition
+    % f(mu,nu,beta) = 0 is given by f(mu,nu,beta) = g(mu,beta) - nu = 0.
+    % JACOBIAN / locally linearized model by VW
+    while crit > tol && iter < maxit
+        iter = iter + 1;
+        [B1,B2,b,J] = OEFPIL_matrices(fun,mu0,nu0,beta0,options);
+        F    = -J;
+        FL   = L\F;
+        FLLF = FL' * FL;
+        LXY  = L\[x - mu0;y - nu0];
+        mubetaDelta = FLLF \ (FL' * LXY);
+        muDelta = mubetaDelta(idm);
+        mu0   = mu0 + muDelta;
+        betaDelta = mubetaDelta(m+idp);
+        beta0 = beta0 + betaDelta;
+        funcrit = fun(mu0,nu0,beta0);
+        nuDelta = funcrit;
+        nu0   = nu0 + nuDelta;
+        xResiduals = x - mu0;
+        yResiduals = y - nu0;
+        LXYresiduals  = L\[xResiduals;yResiduals];
+        if strcmpi(options.criterion,'function')
+            crit  = norm(funcrit)/sqrt(m);
+        elseif strcmpi(options.criterion,'weightedresiduals')
+            crit  = max(abs(mubetaDelta./[mu0;beta0]));
+        elseif strcmpi(options.criterion,'parameterdifferences')
+            crit  = norm(mubetaDelta./[mu0;beta0]);
+        else
+            crit  = norm(funcrit)/sqrt(m);
+        end
+    end
+    Umubeta = FLLF \ eye(m+p);
+    Ubeta   = Umubeta(m+idp,m+idp);
+    ubeta   = sqrt(diag(Ubeta));
+elseif strcmpi(options.method,'oefpilvw')
+    % OEFPILVW / straightforward method suggested by VW
+    while crit > tol && iter < maxit
+        iter = iter + 1;
+        [B1,B2,b,J]  = OEFPIL_matrices(fun,mu0,nu0,beta0,options);
+        xyDelta      = [x - mu0;y - nu0];
+        z            = -(b + B1*xyDelta);
+        B1UB1        = B1*U*B1';
+        B2B1UB1z     = B2'*(B1UB1\z);
+        B2B1UB1B2    = B2'*(B1UB1\B2);
+        betaDelta    = B2B1UB1B2 \ B2B1UB1z;
+        beta0        = beta0 + betaDelta;
+        zB2betaDelta = z - B2*betaDelta;
+        lambda       = B1UB1 \ zB2betaDelta;
+        munuDelta    =  xyDelta + U*B1'*lambda;
+        muDelta      = munuDelta(idm);
+        nuDelta      = munuDelta(m+idm);
+        mu0          = mu0 + muDelta;
+        nu0          = nu0 + nuDelta;
+        xResiduals   = x - mu0;
+        yResiduals   = y - nu0;
+        LXYresiduals = L\[xResiduals;yResiduals];
+        funcrit      = fun(mu0,nu0,beta0);
+        if strcmpi(options.criterion,'function')
+            crit  = norm(funcrit)/sqrt(m);
+        elseif strcmpi(options.criterion,'weightedresiduals')
+            crit  = norm(LXYresiduals)/sqrt(2*m);
+        elseif strcmpi(options.criterion,'parameterdifferences')
+            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
+        else
+            crit  = norm(funcrit)/sqrt(m);
+        end
+    end
+    Ubeta   = B2B1UB1B2\eye(p);
+    ubeta   = sqrt(diag(Ubeta));
+elseif strcmpi(options.method,{'oefpil','oefpilrs1'})
+    % OEFPILRS1 / method 1 by Radek Slesinger
+    while crit > tol && iter < maxit
+        iter = iter + 1;
+        [B1,B2,b,J] = OEFPIL_matrices(fun,mu0,nu0,beta0,options);
+        xyDelta = [x - mu0;y - nu0];
+        M       = B1*U*B1';
+        LM      = chol(M,'lower');
+        E       = LM \ B2;
+        [UE,SE,VE] = svd(E);
+        F   = VE * diag(1./diag(SE));
+        G   = LM' \ UE(:,1:p);
+        Q21 = F*G';
+        LMi = LM \ eye(m);
+        Q11 = LMi'*LMi - G*G';
+        Q22 = -F*F'; %%% VW Corrected !!! Changed the sign to minus
+        u   = B1*xyDelta + b; %%% VW Corrected !!! Changed the sing to + b
+        munuDelta = xyDelta - U*B1'*Q11*u;
+        muDelta = munuDelta(idm);
+        nuDelta = munuDelta(m+idm);
+        betaDelta = -Q21*u;
+        mu0   = mu0 + muDelta;
+        nu0   = nu0 + nuDelta;
+        beta0 = beta0 + betaDelta;
+        xResiduals = x - mu0;
+        yResiduals = y - nu0;
+        LXYresiduals  = L\[xResiduals;yResiduals];
+        funcrit = fun(mu0,nu0,beta0);
+        if strcmpi(options.criterion,'function')
+            crit  = norm(funcrit)/sqrt(m);
+        elseif strcmpi(options.criterion,'weightedresiduals')
+            crit  = norm(LXYresiduals)/sqrt(2*m);
+        elseif strcmpi(options.criterion,'parameterdifferences')
+            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
+        else
+            crit  = norm(funcrit)/sqrt(m);
+        end
+    end
+    Ubeta   = -Q22;
+    ubeta   = sqrt(diag(Ubeta));
+    %elseif strcmpi(options.method,'oefpil2')
+elseif strcmpi(options.method,'oefpilrs2')
+    % OEFPILRS2 / method 2 by Radek Slesinger
+    while crit > tol && iter < maxit
+        iter = iter + 1;
+        [B1,B2,b,J] = OEFPIL_matrices(fun,mu0,nu0,beta0,options);
+        xyDelta  = [x - mu0;y - nu0];
+        M            = B1*U*B1';
+        LM           = chol(M,'lower');
+        E            = LM \ B2;
+        [QE,RE]      = qr(E,'econ');
+        REi          = RE \ eye(p);
+        Q22          = -REi*REi';
+        u            = B1*xyDelta + b; %%% VW Corrected !!! Changed the sing to + b
+        v            = LM \ u;
+        w            = QE'*v;
+        vw           = v - QE*w;
+        LMvw         = LM' \ vw;
+        munuDelta    = xyDelta - U*B1'*LMvw;
+        muDelta      = munuDelta(idm);
+        nuDelta      = munuDelta(m+idm);
+        mu0          = mu0 + muDelta;
+        nu0          = nu0 + nuDelta;
+        betaDelta    = -RE(1:p,:) \ w;
+        beta0        = beta0 + betaDelta;
+        xResiduals   = x - mu0;
+        yResiduals   = y - nu0;
+        LXYresiduals = L\[xResiduals;yResiduals];
+        funcrit      = fun(mu0,nu0,beta0);
+        if strcmpi(options.criterion,'function')
+            crit  = norm(funcrit)/sqrt(m);
+        elseif strcmpi(options.criterion,'weightedresiduals')
+            crit  = norm(LXYresiduals)/sqrt(2*m);
+        elseif strcmpi(options.criterion,'parameterdifferences')
+            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
+        else
+            crit  = norm(funcrit)/sqrt(m);
+        end
+    end
+    Ubeta   = -Q22;
+    ubeta   = sqrt(diag(Ubeta));
+else
+    % OEFPILRS2 / method 2 by Radek Slesinger
+    while crit > tol && iter < maxit
+        iter = iter + 1;
+        [B1,B2,b,J] = OEFPIL_matrices(fun,mu0,nu0,beta0,options);
+        xyDelta  = [x - mu0;y - nu0];
+        M            = B1*U*B1';
+        LM           = chol(M,'lower');
+        E            = LM \ B2;
+        [QE,RE]      = qr(E,'econ');
+        REi          = RE \ eye(p);
+        Q22          = -REi*REi';
+        u            = B1*xyDelta + b; %%% VW Corrected !!! Changed the sing to + b
+        v            = LM \ u;
+        w            = QE'*v;
+        vw           = v - QE*w;
+        LMvw         = LM' \ vw;
+        munuDelta    = xyDelta - U*B1'*LMvw;
+        muDelta      = munuDelta(idm);
+        nuDelta      = munuDelta(m+idm);
+        mu0          = mu0 + muDelta;
+        nu0          = nu0 + nuDelta;
+        betaDelta    = -RE(1:p,:) \ w;
+        beta0        = beta0 + betaDelta;
+        xResiduals   = x - mu0;
+        yResiduals   = y - nu0;
+        LXYresiduals = L\[xResiduals;yResiduals];
+        funcrit      = fun(mu0,nu0,beta0);
+        if strcmpi(options.criterion,'function')
+            crit  = norm(funcrit)/sqrt(m);
+        elseif strcmpi(options.criterion,'weightedresiduals')
+            crit  = norm(LXYresiduals)/sqrt(2*m);
+        elseif strcmpi(options.criterion,'parameterdifferences')
+            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
+        else
+            crit  = norm(funcrit)/sqrt(m);
+        end
+    end
+    Ubeta   = -Q22;
+    ubeta   = sqrt(diag(Ubeta));
+end
+
+if options.isPlot
+    plot(x,y,'*',mu0,nu0,'o')
+    grid on
+    xlabel('x')
+    ylabel('y')
+    title('EIV model: Observed vs. fitted values')
+end
+
+%% TABLES Estimated model parameters beta
+
+TABLE_beta = table;
+TABLE_beta.Properties.Description = char(fun);
+TABLE_beta.ESTIMATE = beta0;
+TABLE_beta.STD  = ubeta;
+%TABLE_beta.DF = ((m-p)*ones(size(beta0));
+TABLE_beta.FACTOR = coverageFactor*ones(size(beta0));
+TABLE_beta.LOWER = beta0 - coverageFactor*ubeta;
+TABLE_beta.UPPER = beta0 + coverageFactor*ubeta;
+TABLE_beta.PVAL = 2*normcdf(-abs(beta0./ubeta));
+TABLE_beta.Properties.RowNames = string(strcat('beta_',num2str((1:p)','%-d')));
+
+TABLE_info = table;
+TABLE_info.Properties.Description = 'convergence';
+TABLE_info.m = m;
+TABLE_info.p = p;
+TABLE_info.ITERATIONS = iter;
+TABLE_info.CRITERION  = crit;
+TABLE_info.wRSS = LXYresiduals'*LXYresiduals;
+TABLE_info.xRSS = xResiduals'*xResiduals;
+TABLE_info.yRSS = yResiduals'*yResiduals;
+
+
+%% SHOW TABLE
+
+if options.verbose
+    disp(' ------------------------------------------------------------------------------- ')
+    disp(['    OEFPIL ESTIMATION METHOD = ',char(options.method)])
+    disp(['    fun = ',char(fun)])
+    disp(' ------------------------------------------------------------------------------- ')
+    disp(TABLE_info)
+    disp(' ------------------------------------------------------------------------------- ')
+    disp(TABLE_beta)
+    disp(' ------------------------------------------------------------------------------- ')
+end
+
+%% Results
+
+result.x = x;
+result.y = y;
+result.U = U;
+result.fun = fun;
+result.mu = mu0;
+result.nu = nu0;
+result.beta = beta0;
+result.ubeta = ubeta;
+result.Ubeta = Ubeta;
+result.options = options;
+result.muDelta = muDelta;
+result.nuDelta = nuDelta;
+result.betaDelta = betaDelta;
+result.xResiduals = xResiduals;
+result.yResiduals = yResiduals;
+result.LXYresiduals = LXYresiduals;
+result.funcrit = funcrit;
+result.iter = iter;
+result.crit = crit;
+result.matrix.L = L;
+result.matrix.B1 = B1;
+result.matrix.B2 = B2;
+result.matrix.b = b;
+result.matrix.J = J;
+result.details.idB11 = idB11;
+result.details.idB12 = idB12;
+result.details.idF1 = idF1;
+result.details.idF2 = idF2;
+result.TABLE_beta = TABLE_beta;
+result.TABLE_INFO = TABLE_info;
+result.method = options.method;
+
+end
+%% FUNCTION OEFPIL_matrices
+function [B10,B20,b0,J0] = OEFPIL_matrices(fun,mu0,nu0,beta0,options)
+%OEFPIL_matrices - The required OEFPIL matrices, B1, B2, and the vector b
+%  calculated from the implicit function defining the restrictions on the
+%  model parameters, fun(mu,nu,beta) = 0, computed numerically by finite
+%  differences.
+%
+%  Moreover, if required the Jacobian matrix J of the residual vector [x -
+%  mu; y - nu ] is evaluated with respect to the parameters mu and beta. J
+%  is valid Jacobian matrix if the restriction can be expressed in explicit
+%  form, as nu = g(mu,beta). So, here we assume that the implicit form of
+%  the function fun is of the following form, fun(mu,nu,beta) = g(mu,beta)
+%  -nu.
+%
+% SYNTAX
+%  [B10,B20,b0,J0] = OEFPIL_matrices(fun,mu0,nu0,beta0,options)
+%
+% EXAMPLE 1 (Straight-line EIV model)
+%  fun    = @(mu,nu,beta) beta(1) + beta(2)*mu(:) - nu;
+%  mu0    = [0.0630    0.2965    0.5321    0.7641    0.9930]';
+%  nu0    = [0.0026    0.2534    0.5066    0.7558    1.0017]';
+%  beta0  = [-0.0651 1.0744]';
+%  dim    = length(mu0);
+%  options.delta  = 1e-8;
+%  [B1,B2,b,J] = OEFPIL_matrices(fun,mu0,nu0,beta0,dim,delta)
+
+% Viktor Witkovsky (witkovsky@savba.sk)
+% Ver.: '15-Sep-2023 09:32:38'
+
+%% start gradient
+narginchk(4, 5);
+if nargin < 5, options = []; end
+
+if ~isfield(options, 'delta')
+    options.delta = eps^(1/3);
+end
+
+if ~isfield(options, 'isSparse')
+    options.isSparse = false;
+end
+
+if ~isfield(options, 'funDiff_mu')
+    options.funDiff_mu = [];
+end
+
+if ~isfield(options, 'funDiff_nu')
+    options.funDiff_nu = [];
+end
+
+if ~isfield(options, 'funDiff_beta')
+    options.funDiff_beta = [];
+end
+
+n_mu0   = length(mu0);
+n_nu0   = length(nu0);
+n_beta0 = length(beta0);
+
+delta = options.delta;
+funDiff_mu = options.funDiff_mu;
+funDiff_nu = options.funDiff_nu;
+funDiff_beta = options.funDiff_beta;
+
+% Function fun evaluated at given mu0, nu0 and beta0
+fun_0 = fun(mu0,nu0,beta0);
+
+% Derivatives of the function fun with respect to mu, evaluated at given
+% mu0, nu0 and beta0
+if isempty(funDiff_mu)
+    dfun_mu0 = zeros(n_mu0,n_mu0);
+    for i = 1:n_mu0
+        mu0_minus = mu0; mu0_minus(i) = mu0_minus(i) - delta;
+        mu0_plus = mu0; mu0_plus(i) = mu0_plus(i) + delta;
+        dfun_mu0(:,i) = (fun(mu0_plus,nu0,beta0) - ...
+            fun(mu0_minus,nu0,beta0))/2/delta;
+    end
+else
+    dfun_mu0 = diag(funDiff_mu(mu0,nu0,beta0));
+end
+
+% Derivatives of the function fun with respect to nu, evaluated at given
+% mu0, nu0 and beta0
+if isempty(funDiff_nu)
+    dfun_nu0 = zeros(n_mu0,n_nu0);
+    for i = 1:n_nu0
+        nu0_minus = nu0; nu0_minus(i) = nu0_minus(i) - delta;
+        nu0_plus = nu0; nu0_plus(i) = nu0_plus(i) + delta;
+        dfun_nu0(:,i) = (fun(mu0,nu0_plus,beta0) - ...
+            fun(mu0,nu0_minus,beta0))/2/delta;
+    end
+else
+    dfun_nu0 = diag(funDiff_nu(mu0,nu0,beta0));
+end
+
+% Derivatives of the function fun with respect to beta, evaluated at given
+% mu0, nu0 and beta0
+if isempty(funDiff_beta)
+    dfun_beta0 = zeros(n_mu0,n_beta0);
+    for i = 1:n_beta0
+        beta0_minus = beta0; beta0_minus(i) = beta0_minus(i) - delta;
+        beta0_plus = beta0; beta0_plus(i) = beta0_plus(i) + delta;
+        dfun_beta0(:,i) = (fun(mu0,nu0,beta0_plus) - ...
+            fun(mu0,nu0,beta0_minus))/2/delta;
+    end
+else
+    dfun_beta0  = funDiff_beta(mu0,nu0,beta0);
+end
+
+% B1 = \partial fun / \partial (mu,nu) = [funDmu0 funDnu0]
+B10 = real([dfun_mu0 dfun_nu0]);
+
+% B2 = \partial fun / \partial (beta) = funDbeta0
+B20 = real(dfun_beta0);
+
+% b  = fun(mu0,nu0,beta0)
+b0  = real(fun_0);
+
+% Jacobian matrix J = d(residual(x,y,mu,nu))/d(\mu,beta) =
+% J = [-I 0; -d(fun(\mu,nu,beta))/d(mu0)  -d(fun(\mu,nu,beta))/d(beta0)]
+J0  = real([-diag(ones(n_mu0,1)) zeros(n_mu0,n_beta0); -dfun_mu0 -dfun_beta0]);
+end
