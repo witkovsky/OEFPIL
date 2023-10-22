@@ -287,7 +287,7 @@ idF1  = [idm idm+m m+kron(ones(1,p),idm)];
 idF2  = [idm idm kron(m+idp,ones(1,m))];
 
 %% ALGORITHM
-
+tic;
 % Lower triangular matrix from Choleski decomposition of U
 L = chol(U,'lower');
 
@@ -369,7 +369,7 @@ elseif strcmpi(options.method,'oefpilvw')
     end
     Ubeta   = B2B1UB1B2\eye(p);
     ubeta   = sqrt(diag(Ubeta));
-elseif strcmpi(options.method,{'oefpil','oefpilrs1'})
+elseif any(strcmpi(options.method,{'oefpil','oefpilrs1'}))
     % OEFPILRS1 / method 1 by Radek Slesinger
     while crit > tol && iter < maxit
         iter = iter + 1;
@@ -492,6 +492,8 @@ else
     ubeta   = sqrt(diag(Ubeta));
 end
 
+tictoc = toc;
+
 if options.isPlot
     figure
     plot(x,y,'*',mu0,nu0,'o')
@@ -526,6 +528,7 @@ TABLE_info.m = m;
 TABLE_info.p = p;
 TABLE_info.ITERATIONS = iter;
 TABLE_info.CRITERION  = crit;
+TABLE_info.FUNCTION  = norm(funcrit)/sqrt(m);
 TABLE_info.wRSS = LXYresiduals'*LXYresiduals;
 TABLE_info.xRSS = xResiduals'*xResiduals;
 TABLE_info.yRSS = yResiduals'*yResiduals;
@@ -562,9 +565,7 @@ result.betaDelta = betaDelta;
 result.xResiduals = xResiduals;
 result.yResiduals = yResiduals;
 result.LXYresiduals = LXYresiduals;
-result.funcrit = funcrit;
-result.iter = iter;
-result.crit = crit;
+result.funcvals = funcrit;
 result.matrix.L = L;
 result.matrix.B1 = B1;
 result.matrix.B2 = B2;
@@ -577,6 +578,10 @@ result.details.idF2 = idF2;
 result.TABLE_beta = TABLE_beta;
 result.TABLE_INFO = TABLE_info;
 result.method = options.method;
+result.funcrit = norm(funcrit)/sqrt(m);
+result.crit = crit;
+result.iter = iter;
+result.tictoc = tictoc;
 
 end
 %% FUNCTION OEFPIL_matrices
