@@ -81,8 +81,11 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %  mu0    = x;
 %  nu0    = y;
 %  beta0  = [0;1];
-%  options.method = 'oefpilrs2';
-%  options.criterion = 'parameterdifferences';
+%  options.funDiff_mu   = @(mu,nu,beta) beta(2).*ones(size(mu));
+%  options.funDiff_nu   = @(mu,nu,beta) -ones(size(nu));
+%  options.funDiff_beta = @(mu,nu,beta) [ones(size(mu)), mu];
+%  options.method       = 'oefpil';
+%  options.criterion    = 'parameterdifferences';
 %  result = OEFPIL2D(x,y,{Ux,Uy,Uxy},fun,mu0,nu0,beta0,options);
 %
 % EXAMPLE 2 (Oliver-Phar function fit / fun(mu,nu,[0.75;-0.25;1.75]))
