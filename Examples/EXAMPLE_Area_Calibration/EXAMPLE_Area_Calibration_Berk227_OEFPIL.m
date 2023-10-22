@@ -51,4 +51,4 @@ grid on
 xlabel('x')
 ylabel('y')
 legend('observed values','fitted values','fitted function','Location','northwest')
-title('Amen Galaxies Data: Observed vs. fitted values')
+title('Area Calibration Data: Observed vs. fitted values')
