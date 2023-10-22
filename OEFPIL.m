@@ -57,7 +57,8 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %            options.isPlot    = true;
 %            options.alpha     = 0.05;
 %            options.isSparse  = false;
-%            options.funDiff_mu = [];
+%            options.funDiff_mu = {};      % cell array of fun derivatives
+%                                          % with respect to mu{i}
 %            options.funDiff_beta = [];
 %            options.method = 'oefpil';    % default method (oefpilrs1)
 %            options.method = 'oefpilrs1'; % method 1 by Radek Slesinger
@@ -80,10 +81,12 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %  uyB    = sqrt(0.000036);
 %  Uy     = uyA^2*eye(m) + uyB^2*ones(m);
 %  U      = {Ux, []; [] Uy};
-%  mu0    = {x, y}
+%  mu0    = {x, y};
 %  beta0  = [0;1];
-%  options.method = 'oefpil';
-%  options.criterion = 'parameterdifferences';
+%  options.funDiff_mu   = @(mu,beta) {beta(2).*ones(size(mu{1})), -ones(size(mu{2}))};
+%  options.funDiff_beta = @(mu,beta) [ones(size(mu{1})), mu{1}];
+%  options.method       = 'oefpil';
+%  options.criterion    = 'parameterdifferences';
 %  result = OEFPIL(data,U,fun,mu0,beta0,options);
 %
 % EXAMPLE 2 (Oliver-Phar function fit / fun(mu,nu,[0.75;-0.25;1.75]))
@@ -660,7 +663,11 @@ if isempty(funDiff_mu)
             fun(mu0_minus,beta0))/2/delta;
     end
 else
-    dfun_mu0 = diag(funDiff_mu(mu0,beta0));
+    dfun_mu0  = funDiff_mu(mu0,beta0);
+    for i = 1:n
+        dfun_mu0{i} = diag(dfun_mu0{i});
+    end
+    dfun_mu0 = cell2mat(dfun_mu0);
 end
 
 
