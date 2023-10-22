@@ -40,8 +40,8 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %            parameter vector mu.
 %  nu0     - the m-dimensional vector of the initial values of the
 %            parameter vector nu.
-%  beta0   - the m-dimensional vector of the initial values of the
-%            parameter vector nu.
+%  beta0   - the p-dimensional vector of the initial values of the
+%            parameter vector nbeta.
 %  options - structure with the following default values of the control
 %            parameters:
 %            options.criterion = 'default';              % 'function'
@@ -493,11 +493,19 @@ else
 end
 
 if options.isPlot
+    figure
     plot(x,y,'*',mu0,nu0,'o')
     grid on
     xlabel('x')
     ylabel('y')
     title('EIV model: Observed vs. fitted values')
+% 
+%     figure
+%     plot([xResiduals;yResiduals],'*-')
+%     grid on
+%     xlabel('index')
+%     ylabel('residuals')
+%     title('EIV model: Residuals values')
 end
 
 %% TABLES Estimated model parameters beta
@@ -506,7 +514,6 @@ TABLE_beta = table;
 TABLE_beta.Properties.Description = char(fun);
 TABLE_beta.ESTIMATE = beta0;
 TABLE_beta.STD  = ubeta;
-%TABLE_beta.DF = ((m-p)*ones(size(beta0));
 TABLE_beta.FACTOR = coverageFactor*ones(size(beta0));
 TABLE_beta.LOWER = beta0 - coverageFactor*ubeta;
 TABLE_beta.UPPER = beta0 + coverageFactor*ubeta;
