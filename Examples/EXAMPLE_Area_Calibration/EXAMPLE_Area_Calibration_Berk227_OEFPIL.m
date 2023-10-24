@@ -1,28 +1,73 @@
-%% EXAMPLE_Amen_Galaxies
+%% EXAMPLE_Area_Calibration_Berk227_OEFPIL
 
 clear
 close all
 
 %% LOAD DATA
 
-load DATA_Amen_Galaxies;
+load DATA_Area_Calibration_Berk227.mat 
 
 %%  Set measurements x and y and uncertainty matrix
 
-x = data(:,1);
-y = data(:,2);
+x = hcApunc(:,1);
+y = hcApunc(:,2);
 
-U = {xcov xycov; xycov ycov};
+U = {Ux Uxy; Uxy' Uy};
+
+
+%% Set fun1 : Fractional polynomial "a2*x^2 + a1*x + a12*sqrt(x)"
+% fun1 =  @(mu,beta) beta(1)*mu{1}.^2 + beta(2)*mu{1} ...
+%     + beta(3)*mu{1}.^(1/2) - mu{2};
+% 
+% fun1Diff_mu = @(mu,beta) {2*beta(1)*mu{1} + beta(2) ...
+%     + (1/2)*beta(3)*mu{1}.^(-1/2), -ones(size(mu{2}))};
+% 
+% fun1Diff_beta = @(mu,beta) [mu{1}.^2, mu{1}, mu{1}.^(1/2)];
+
+%% Set fun2 : Fractional polynomial "a2*x^2 + a1*x + a12*x^(1/2) + a14*x^(1/4)"
+
+% fun2 =  @(mu,beta) beta(1)*mu{1}.^2 + beta(2)*mu{1} ...
+%     + beta(3)*mu{1}.^(1/2) + beta(4)*mu{1}.^(1/4)  - mu{2};
+% 
+% fun2Diff_mu = @(mu,beta) {2*beta(1)*mu{1} + beta(2) ...
+%     + (1/2)*beta(3)*mu{1}.^(-1/2) + (1/4)*beta(4)*mu{1}.^{-3/4}, ...
+%     -ones(size(mu{2}))};
+% 
+% fun2Diff_beta = @(mu,beta) [mu{1}.^2, mu{1}, mu{1}.^(1/2), mu{1}.^(1/4)];
+
+%% Set fun3 : Polynomial "a3*x^3 + a2*x^2 + a1*x"
+
+% fun3 =  @(mu,beta) beta(1)*mu{1}.^3 + beta(2)*mu{1}.^2 + beta(3)*mu{1} ...
+%         - mu{2};
+% 
+% fun3Diff_mu = @(mu,beta) {3*beta(1)*mu{1}.^2 + 2*beta(2)*mu{1} ...
+%     + beta(3), -ones(size(mu{2}))};
+% 
+% fun3Diff_beta = @(mu,beta) [mu{1}.^3, mu{1}.^2, mu{1}];
+
+
+%% Set fun4 : Polynomial "a4*x^4 + a3*x^3 + a2*x^2 + a1*x"
+
+% fun4 =  @(mu,beta) beta(1)*mu{1}.^4 + beta(2)*mu{1}.^3 + ...
+%          + beta(3)*mu{1}.^2 + beta(4)*mu{1} - mu{2};
+% 
+% fun4Diff_mu = @(mu,beta) {4*beta(1)*mu{1}.^3 + 3*beta(2)*mu{1}.^2 ...
+%     + 2*beta(3)*mu{1} + beta(4), -ones(size(mu{2}))};
+% 
+% fun4Diff_beta = @(mu,beta) [mu{1}.^4, mu{1}.^3, mu{1}.^2, mu{1}];
 
 %% Set the function of parameter constraints
-%  fun = fun_mubeta;
 
-fun    =  @(mu,beta) beta(1)*mu{1} + beta(2) - mu{2};
+fun = fun4;
+funDiff_mu = fun4Diff_mu;
+funDiff_beta = fun4Diff_beta;
+
+start = start4;
 
 %% Set the derivatives of the function of parameter constraints (optional)
 
-options.funDiff_mu   = @(mu,beta) {beta(1)*ones(size(mu{1})), -ones(size(mu{2}))};
-options.funDiff_beta = @(mu,beta) [mu{1},ones(size(mu{1}))];
+options.funDiff_mu   = funDiff_mu;
+options.funDiff_beta = funDiff_beta;
 
 %% Other options
 
