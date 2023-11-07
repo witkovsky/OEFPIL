@@ -23,9 +23,9 @@ load DataBerk52_25032021.mat; Uy = Uy20;
 
 %%
 
-m = length(x);
+q = length(x);
 if isempty(Uxy)
-    Uxy = zeros(m);
+    Uxy = zeros(q);
 end
 U   = [Ux Uxy; Uxy' Uy];
 
@@ -45,10 +45,10 @@ nu = gfun(mu,beta);
 
 munu = [mu nu];
 
-xy = munu(:) + sqrtm(full(U)) * randn(2*m,1);
+xy = munu(:) + sqrtm(full(U)) * randn(2*q,1);
 
-x = xy(1:m);
-y = xy(m+(1:m));
+x = xy(1:q);
+y = xy(q+(1:q));
 
 %% Observed vs. True Values
 
