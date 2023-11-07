@@ -364,6 +364,8 @@ elseif strcmpi(options.method,'oefpilvw')
         LXYresiduals = L\[xResiduals;yResiduals];
         funcritvals  = fun(mu0,nu0,beta0);
         funcrit      = norm(funcritvals)/sqrt(m);
+        funcritvalsL = B1*munuDelta + B2*betaDelta + b;
+        funcritL     = norm(funcritvalsL)/sqrt(m);
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
