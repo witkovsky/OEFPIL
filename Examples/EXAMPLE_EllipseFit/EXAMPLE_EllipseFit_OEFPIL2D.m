@@ -14,10 +14,10 @@ close all
            0.4553    0.2383    0.1550   -0.1082   -0.2388 ...
           -0.4654   -0.7143   -0.4161   -0.3032   -0.2883]';
 
- m     = 15;
- Ux    = 0.05^2*eye(m);
- Uy    = 0.05^2*eye(m);
- Uxy   = zeros(m);
+ q     = 15;
+ Ux    = 0.05^2*eye(q);
+ Uy    = 0.05^2*eye(q);
+ Uxy   = zeros(q);
  U     = [Ux Uxy; Uxy' Uy];
  fun   = @(mu,nu,beta) mu.^2 + beta(1)*nu.^2 + beta(2)*mu.*nu + ...
          beta(3)*mu + beta(4)*nu + beta(5);
