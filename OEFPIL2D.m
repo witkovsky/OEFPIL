@@ -552,7 +552,6 @@ TABLE_info.wRSS = LXYresiduals'*LXYresiduals;
 TABLE_info.xRSS = xResiduals'*xResiduals;
 TABLE_info.yRSS = yResiduals'*yResiduals;
 
-
 %% SHOW TABLE
 
 if options.verbose
@@ -574,35 +573,35 @@ result.U = U;
 result.fun = fun;
 result.mu = mu0;
 result.nu = nu0;
-result.beta = beta0;
+result.beta  = beta0;
 result.ubeta = ubeta;
 result.Ubeta = Ubeta;
 result.options = options;
 result.muDelta = muDelta;
 result.nuDelta = nuDelta;
-result.betaDelta = betaDelta;
-result.xResiduals = xResiduals;
-result.yResiduals = yResiduals;
+result.betaDelta    = betaDelta;
+result.xResiduals   = xResiduals;
+result.yResiduals   = yResiduals;
 result.LXYresiduals = LXYresiduals;
-result.funcvals = funcrit;
-result.matrix.L = L;
+result.funcritvals  = funcritvals;
+result.funcritvalsL = funcritvalsL;
+result.matrix.L  = L;
 result.matrix.B1 = B1;
 result.matrix.B2 = B2;
-result.matrix.b = b;
-result.matrix.J = J;
+result.matrix.b  = b;
+result.matrix.J  = J;
 result.details.idB11 = idB11;
 result.details.idB12 = idB12;
-result.details.idF1 = idF1;
-result.details.idF2 = idF2;
-result.TABLE_beta = TABLE_beta;
-result.TABLE_INFO = TABLE_info;
-result.method = options.method;
-result.funcrit = funcrit;
+result.details.idF1  = idF1;
+result.details.idF2  = idF2;
+result.TABLE_beta    = TABLE_beta;
+result.TABLE_INFO    = TABLE_info;
+result.method        = options.method;
 result.funcritL = funcritL;
 result.funcrit  = funcrit;
-result.crit = crit;
-result.iter = iter;
-result.tictoc = tictoc;
+result.crit     = crit;
+result.iter     = iter;
+result.tictoc   = tictoc;
 
 end
 %% FUNCTION OEFPIL_matrices
