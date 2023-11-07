@@ -1,48 +1,58 @@
 function result = OEFPIL(data,U,fun,mu0,beta0,options)
-%  OEFPIL Estimates the coefficients of a nonlinear Errors-in-Variables
-%  (EIV) model specified by the restrictions on its parameters.
+%  OEFPIL Estimates the coefficients of a nonlinear (n-variate)
+%  Errors-in-Variables (EIV) model specified by the restrictions on its
+%  parameters. 
 %
-%  Here data represent the (m x n)-dimensional matrix of measurements,
-%  observed values of the random vectors X1, X2, ... , Xn.
+%  We assume a measurement model: X = mu + error with fun(mu, beta) = 0,
+%  which represents q constraints on the model parameters. These
+%  constraints are given by the implicit nonlinear vector function. In this
+%  context, X is an m-dimensional column vector of direct measurements,
+%  beta is a p-dimensional column vector of model parameters that are of
+%  primary interest, and mu is an m-dimensional column vector representing
+%  the true unknown values (expectations of X), which are considered as the
+%  model parameters of secondary interest.
 %
-%  We assume model: X = mu + error, & fun(mu,beta) = 0, where fun(mu,beta)
-%  = 0 represent the restrictions on the model parameters given by the
-%  implicit nonlinear (m-dimensional vector) function.
+%  Here, the data represents a (q x n)-dimensional matrix or an
+%  n-dimensional cell vector of q-dimensional vectors. It comprises the
+%  observed values (measurements) of q-dimensional random vectors X1, X2,
+%  ..., Xn, collectively forming the m-dimensional vector X = (X1', ...,
+%  Xn')'.
 %
 %  The covariance matrix (uncertainty matrix) of X = (X1',...,Xn')' is
-%  assumed to be known (m*n x m*n)-dimensional matrix. U can be specied as
-%  an (n x n) cell array of (m x m)-dimensional matrices: That is,
-%  U = cell(n,n), and U{i,j} = cov(Xi, Xj) for i,j, = 1,...,n.
+%  assumed to be known (q*n x q*n)-dimensional matrix. U can be specied as
+%  an (n x n) cell array of (q x q)-dimensional matrices: That is, U =
+%  cell(n,n), and U{i,j} = cov(Xi, Xj) for i,j, = 1,...,n.
 %
 % SYNTAX:
 %    result = OEFPIL(data,U,fun,mu0,beta0,options)
 %
 % INPUTS
-%  data    - (m x n)-dimensional matrix of measurements of the random
+%  data    - (q x n)-dimensional matrix of measurements of the random
 %            vectors X1, X2, ... , Xn, or n-dimensional cell vector of
-%            m-dimensional vectors, i.e. data = {x1,x2,...,xn}, where xi, i
-%            = 1,..,n are m-dimensional column vectors.
-%  U       - (n*m x n*m)-dimensional uncertainty matrix, or (n x n)
-%            dimensional cell array of (m x m)-dimensional matrices: That
+%            q-dimensional vectors, i.e. data = {x1,x2,...,xn}, where xi, i
+%            = 1,..,n are q-dimensional column vectors.
+%  U       - (n*q x n*q)-dimensional uncertainty matrix, or (n x n)
+%            dimensional cell array of (q x q)-dimensional matrices: That
 %            is, U = cell(n,n), and U{i,j} = cov(Xi, Xj) for i,j, = 1,...,n.
-%            If empty, default value is U = eye(m*n). If U is cell array of
+%            If empty, default value is U = eye(q*n). If U is cell array of
 %            size (n x 1) or (1 x n), then U is block digobnal matrix with
 %            its block matices specified as U = {U11, U22, ..., Unn}. If U
 %            is (n x n) cell array, its block matrices are specified as U =
 %            {U11, U12, ..., U1n; U21, U22, ..., U2n; ... ; Un1, ..., Unn}.
 %            As U is symmetric, Uji = Uij'. If Uji is not equal to Uij',
 %            we set Uji = Uij' for j < i. If any diagonal block is empty,
-%            we set Uii = eye(m). If any off-diagonal block Uij i>j is
-%            empty, we set Uij = zeros(m) and Uji = zeros(m). If any block
-%            the cell array is m-dimensional vector we set Uij = diag(Uij).
-%  fun     - the anonymous m-dimensional column vector function of
+%            we set Uii = eye(q). If any off-diagonal block Uij i>j is
+%            empty, we set Uij = zeros(q) and Uji = zeros(q). If any block
+%            the cell array is q-dimensional vector we set Uij = diag(Uij).
+%  fun     - the anonymous q-dimensional column vector function of
 %            arguments of mu = {mu1, mu2, ... , mun} (i.e. the elements of
 %            the (n x 1) cell array) and beta (p-dimensional vector),
-%            where fun(mu,beta) = 0 represent the restrictions on the model
-%            parameters.
-%  mu0     - the (m x 1) or (1 x m)-dimensional vector of the initial
-%            values of the parameters specified in mu. In particular, mu0 =
-%            {mu01, ... , mu0n}. If empty, we set mu0 = {x1, ..., xn}.
+%            where fun(mu,beta) = 0 represent the q constraints on the
+%            model parameters mu and beta.
+%  mu0     - (q x n)-dimensional matrix or n-dimensional cell vector of
+%            q-dimensional vectors of the initial values of the parameters
+%            specified in mu. In particular, mu0 = {mu01, ... , mu0n}. If
+%            empty, we set mu0 = {x1, ..., xn}. 
 %  beta0   - the p-dimensional vector of the initial values of the
 %            parameter vector beta0.
 %  options - structure with the following default values of the control
@@ -70,16 +80,16 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %           20.0360 17.3690 14.7180 12.0390 9.3760 6.6970 4.0080]';
 %  y      = [0 10.1910 20.1020 30.1700 42.2300 50.0500 ...
 %           60.0700 50.0800 40.1150 30.0890 20.0950 10.0700 0]';
-%  m      = length(x);
+%  q      = length(x);
 %  data   = {x, y};
 %  n      = length(data);
 %  fun    = @(mu,beta) beta(1) + beta(2) .* mu{1} - mu{2};
 %  uxA    = sqrt(0.00001444);
 %  uxB    = 0.0014;
-%  Ux     = uxA^2*eye(m) + uxB^2*ones(m);
+%  Ux     = uxA^2*eye(q) + uxB^2*ones(q);
 %  uyA    = sqrt(0.000036);
 %  uyB    = sqrt(0.000036);
-%  Uy     = uyA^2*eye(m) + uyB^2*ones(m);
+%  Uy     = uyA^2*eye(q) + uyB^2*ones(q);
 %  U      = {Ux, []; [] Uy};
 %  mu0    = {x, y};
 %  beta0  = [0;1];
@@ -96,10 +106,10 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %  y      = [ 0.2398    4.9412   14.2090   27.3720   44.0513 ...
 %             0.2110    4.9517   14.2306   27.3937   44.0172 ...
 %             0.2303    4.9406   14.2690   27.3982   44.0611]';
-%  m      = length(x);
+%  q      = length(x);
 %  data   = {x, y};
-%  Ux     = 0.05^2*eye(m);
-%  Uyblk  = 0.1^2*eye(m/3)+ 0.05^2*ones(m/3);
+%  Ux     = 0.05^2*eye(q);
+%  Uyblk  = 0.1^2*eye(q/3)+ 0.05^2*ones(q/3);
 %  Uy     = blkdiag(Uyblk,Uyblk,Uyblk);
 %  U      = {Ux []; [] Uy};
 %  fun    = @(mu,beta) beta(1).*(mu{1}-beta(2)).^beta(3) - mu{2};
@@ -128,9 +138,10 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %     0.4947   -1.4210    0.7414
 %     1.7172    1.7552   -0.1043
 %     0.1041    1.8793   -0.1497];
-%  [m,n] = size(data);
-%  sigma  = 0.075;
-%  U = sigma^2*eye(m*n);
+%  [q,n] = size(data);
+%  m     = q*n;
+%  sigma = 0.075;
+%  U = sigma^2*eye(m);
 %  fun = @(mu,beta) beta(1)*mu{1}.^2 + beta(2)*mu{2}.^2 + beta(3)*mu{3}.^2 ...
 %        + beta(4)*mu{1}.*mu{2} + beta(5)*mu{1}.*mu{3} ...
 %        + beta(6)*mu{2}.*mu{3} + beta(7)*mu{1} + beta(8)*mu{2} ...
@@ -167,7 +178,7 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %      25(11), 115001. 
 
 % Viktor Witkovsky (witkovsky@savba.sk)
-% Ver.: '07-Nov-2023 11:31:14'
+% Ver.: '07-Nov-2023 13:02:46'
 
 %% CHECK THE INPUTS AND OUTPUTS
 narginchk(1, 6);
@@ -233,24 +244,24 @@ end
 
 if iscell(data)
     n = length(data);
-    m  = length(data{1});
-    xyz = zeros(m,n);
+    q = length(data{1});
+    xyz = zeros(q,n);
     for j = 1:n
         xyz(:,j) = data{j};
     end
 else
     xyz = data;
-    [m,n] = size(xyz);
-    data = mat2cell(xyz,m,ones(1,n));
+    [q,n] = size(xyz);
+    data = mat2cell(xyz,q,ones(1,n));
 end
+m = q*n;
 
 xyzVec = xyz(:);
 
-
-idm = 1:m;
+idq = 1:q;
 
 if isempty(U)
-    U = speye(m*n);
+    U = speye(q*n);
 end
 
 if iscell(U)
@@ -259,34 +270,34 @@ if iscell(U)
     if (mU == 1 && nU == 1)
         U = UU{1};
     elseif (mU == 1 && nU > 1 && nU == n)
-        U = sparse(n*m,n*m);
+        U = sparse(n*q,n*q);
         for j = 1:nU
             if isempty(UU{j})
-                UU{j} = speye(m);
+                UU{j} = speye(q);
             elseif isvector(UU{j})
-                UU{j} = sparse(idm,idm,UU{j});
+                UU{j} = sparse(idq,idq,UU{j});
             end
-            U((j-1)*m+idm,(j-1)*m+idm) = UU{j};
+            U((j-1)*q+idq,(j-1)*q+idq) = UU{j};
         end
     elseif (mU > 1 && nU == 1 && mU == n)
-        U = sparse(n*m,n*m);
+        U = sparse(n*q,n*q);
         for j = 1:mU
             if isempty(UU{j})
-                UU{j} = speye(m);
+                UU{j} = speye(q);
             elseif isvector(UU{j})
-                UU{j} = sparse(idm,idm,UU{j});
+                UU{j} = sparse(idq,idq,UU{j});
             end
-            U((j-1)*m+idm,(j-1)*m+idm) = UU{j};
+            U((j-1)*q+idq,(j-1)*q+idq) = UU{j};
         end
     elseif (mU > 1 && nU > 1 && mU == n && nU == n)
-        U = sparse(n*m,n*m);
+        U = sparse(n*q,n*q);
         for j = 1:mU
             if isempty(UU{j,j})
-                UU{j,j} = speye(m);
+                UU{j,j} = speye(q);
             elseif isvector(UU{j,j})
-                UU{j,j} = sparse(idm,idm,UU{j,j});
+                UU{j,j} = sparse(idq,idq,UU{j,j});
             end
-            U((j-1)*m+idm,(j-1)*m+idm) = UU{j,j};
+            U((j-1)*q+idq,(j-1)*q+idq) = UU{j,j};
         end
         for i = 1:mU
             for j = (i+1):nU
@@ -295,12 +306,12 @@ if iscell(U)
                 % That is we require that UU{j,i} = UU{i,j}';
                 UU{j,i} = UU{i,j}';
                 if isempty(UU{i,j})
-                    UU{i,j} = sparse(m,m);
+                    UU{i,j} = sparse(q,q);
                 elseif isvector(UU{i,j})
-                    UU{i,j} = sparse(idm,idm,UU{i,j});
+                    UU{i,j} = sparse(idq,idq,UU{i,j});
                 end
-                U((i-1)*m+idm,(j-1)*m+idm) = UU{i,j};
-                U((j-1)*m+idm,(i-1)*m+idm) = UU{i,j}';
+                U((i-1)*q+idq,(j-1)*q+idq) = UU{i,j};
+                U((j-1)*q+idq,(i-1)*q+idq) = UU{i,j}';
             end
         end
     else
@@ -325,7 +336,7 @@ end
 if iscell(mu0)
     mu0cell = mu0;
 else
-    mu0cell = mat2cell(mu0,m,ones(1,n));
+    mu0cell = mat2cell(mu0,q,ones(1,n));
 end
 
 mu0 = cell2mat(mu0cell);
@@ -340,10 +351,10 @@ else
 end
 
 idp   = 1:p;
-idB11 = [idm idm];
-idB12 = [idm m+idm];
-idF1  = [idm idm+m m+kron(ones(1,p),idm)];
-idF2  = [idm idm kron(m+idp,ones(1,m))];
+idB11 = [idq idq];
+idB12 = [idq q+idq];
+idF1  = [idq idq+q q+kron(ones(1,p),idq)];
+idF2  = [idq idq kron(q+idp,ones(1,q))];
 
 %% ALGORITHM
 tic;
@@ -371,22 +382,22 @@ if strcmpi(options.method,'oefpilvw')
         lambda       = B1UB1 \ zB2betaDelta;
         muDelta      = residuals + U*B1'*lambda;
         mu0Vec       = mu0Vec + muDelta;
-        mu0cell      = mat2cell(mu0Vec,m*ones(1,n),1);
+        mu0cell      = mat2cell(mu0Vec,q*ones(1,n),1);
         residuals    = xyzVec - mu0Vec;
         Lresiduals   = L\residuals;
         funcritvals  = fun(mu0cell,beta0);
-        funcrit      = norm(funcritvals)/sqrt(m);
+        funcrit      = norm(funcritvals)/sqrt(q);
         funcritvalsL = B1*muDelta + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(m);
+        funcritL     = norm(funcritvalsL)/sqrt(q);
         % %%%%%%%%%%%%%%%%%%%%%
         % Space for INNER CYCLE
         % %%%%%%%%%%%%%%%%%%%%%
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(Lresiduals)/sqrt(n*m);
+            crit  = norm(Lresiduals)/sqrt(n*q);
         elseif strcmpi(options.criterion,'parameterdifferences')
-            crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*m+p);
+            crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*q+p);
         else
             crit  = funcrit;
         end
@@ -405,30 +416,30 @@ elseif any(strcmpi(options.method,{'oefpil','oefpilrs1'}))
         F          = VE * diag(1./diag(SE));
         G          = LM' \ UE(:,1:p);
         Q21        = F*G';
-        LMi        = LM \ eye(m);
+        LMi        = LM \ eye(q);
         Q11        = LMi'*LMi - G*G';
         Q22        = -F*F'; %%% VW Corrected !!! Changed the sign to minus
         u          = B1*residuals + b; %%% VW Corrected !!! Changed the sing to + b
         muDelta    = residuals - U*B1'*Q11*u;
         mu0Vec     = mu0Vec + muDelta;
-        mu0cell    = mat2cell(mu0Vec,m*ones(1,n),1);
+        mu0cell    = mat2cell(mu0Vec,q*ones(1,n),1);
         betaDelta  = -Q21*u;
         beta0      = beta0 + betaDelta;
         residuals  = xyzVec - mu0Vec;
         Lresiduals   = L\residuals;
         funcritvals  = fun(mu0cell,beta0);
-        funcrit      = norm(funcritvals)/sqrt(m);
+        funcrit      = norm(funcritvals)/sqrt(q);
         funcritvalsL = B1*muDelta + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(m);
+        funcritL     = norm(funcritvalsL)/sqrt(q);
         % %%%%%%%%%%%%%%%%%%%%%
         % Space for INNER CYCLE
         % %%%%%%%%%%%%%%%%%%%%%
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(Lresiduals)/sqrt(n*m);
+            crit  = norm(Lresiduals)/sqrt(n*q);
         elseif strcmpi(options.criterion,'parameterdifferences')
-            crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*m+p);
+            crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*q+p);
         else
             crit  = funcrit;
         end
@@ -453,24 +464,24 @@ elseif strcmpi(options.method,'oefpilrs2')
         LMvw         = LM' \ vw;
         muDelta      = residuals - U*B1'*LMvw;
         mu0Vec       = mu0Vec + muDelta;
-        mu0cell      = mat2cell(mu0Vec,m*ones(1,n),1);
+        mu0cell      = mat2cell(mu0Vec,q*ones(1,n),1);
         betaDelta    = -RE(1:p,:) \ w;
         beta0        = beta0 + betaDelta;
         residuals    = xyzVec - mu0Vec;
         Lresiduals   = L\residuals;
         funcritvals  = fun(mu0cell,beta0);
-        funcrit      = norm(funcritvals)/sqrt(m);
+        funcrit      = norm(funcritvals)/sqrt(q);
         funcritvalsL = B1*muDelta + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(m);
+        funcritL     = norm(funcritvalsL)/sqrt(q);
         % %%%%%%%%%%%%%%%%%%%%%
         % Space for INNER CYCLE
         % %%%%%%%%%%%%%%%%%%%%%
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(Lresiduals)/sqrt(n*m);
+            crit  = norm(Lresiduals)/sqrt(n*q);
         elseif strcmpi(options.criterion,'parameterdifferences')
-            crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*m+p);
+            crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*q+p);
         else
             crit  = funcrit;
         end
@@ -495,24 +506,24 @@ else
         LMvw         = LM' \ vw;
         muDelta      = residuals - U*B1'*LMvw;
         mu0Vec       = mu0Vec + muDelta;
-        mu0cell      = mat2cell(mu0Vec,m*ones(1,n),1);
+        mu0cell      = mat2cell(mu0Vec,q*ones(1,n),1);
         betaDelta    = -RE(1:p,:) \ w;
         beta0        = beta0 + betaDelta;
         residuals    = xyzVec - mu0Vec;
         Lresiduals   = L\residuals;
         funcritvals  = fun(mu0cell,beta0);
-        funcrit      = norm(funcritvals)/sqrt(m);
+        funcrit      = norm(funcritvals)/sqrt(q);
         funcritvalsL = B1*muDelta + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(m);
+        funcritL     = norm(funcritvalsL)/sqrt(q);
         % %%%%%%%%%%%%%%%%%%%%%
         % Space for INNER CYCLE
         % %%%%%%%%%%%%%%%%%%%%%
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(Lresiduals)/sqrt(n*m);
+            crit  = norm(Lresiduals)/sqrt(n*q);
         elseif strcmpi(options.criterion,'parameterdifferences')
-            crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*m+p);
+            crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*q+p);
         else
             crit  = funcrit;
         end
@@ -578,8 +589,10 @@ TABLE_beta.Properties.RowNames = string(strcat('beta_',num2str((1:p)','%-d')));
 
 TABLE_info = table;
 TABLE_info.Properties.Description = 'convergence';
+TABLE_info.n = n;
 TABLE_info.m = m;
 TABLE_info.p = p;
+TABLE_info.q = q;
 TABLE_info.ITERATIONS   = iter;
 TABLE_info.CRITERION    = crit;
 TABLE_info.FUNCCRIT     = funcrit;
@@ -611,6 +624,10 @@ result.mu    = mu0cell;
 result.beta  = beta0;
 result.ubeta = ubeta;
 result.Ubeta = Ubeta;
+result.n = n;
+result.m = m;
+result.p = p;
+result.q = q;
 result.options = options;
 result.muDelta = muDelta;
 result.betaDelta    = betaDelta;
