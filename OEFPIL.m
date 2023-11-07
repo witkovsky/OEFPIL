@@ -567,9 +567,8 @@ TABLE_info.ITERATIONS   = iter;
 TABLE_info.CRITERION    = crit;
 TABLE_info.FUNCCRIT     = funcrit;
 TABLE_info.FUNCCRIT_LIN = funcritL;
-TABLE_info.RSS  = residuals'*residuals;
 TABLE_info.wRSS = Lresiduals'*Lresiduals;
-
+TABLE_info.RSS  = residuals'*residuals;
 
 %% SHOW TABLE
 
@@ -615,9 +614,6 @@ result.TABLE_INFO    = TABLE_info;
 result.method        = options.method;
 result.funcritL = funcritL;
 result.funcrit  = funcrit;
-result.crit     = crit;
-result.iter     = iter;
-result.tictoc   = tictoc;
 result.crit     = crit;
 result.iter     = iter;
 result.tictoc   = tictoc;
