@@ -154,6 +154,26 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %      constraints on the model parameters. AMCTMT 2023 - Advanced
 %      Mathematical and Computational Tools in Metrology and Testing 2023
 %      Sarajevo, Bosnia and Herzegovina, 26-28 September 2023.
+% [2]  Slesinger, R., Charvatova Campbell, A., Gerslova, Z., Sindlar V.,
+%      Wimmer G. (2023). OEFPIL: New method and software tool for fitting
+%      nonlinear functions to correlated data with errors in variables. In
+%      MEASUREMENT 2023, Smolenice, Slovakia, May 29-31, 2023, 126-129.
+% [3]  Charvatova Campbell, A., Gerslova, Z., Sindlar, V., Slesinger, R.,
+%      Wimmer, G. (2024). New framework for nanoindentation curve fitting
+%      and measurement uncertainty estimation. Precision Engineering, 85,
+%      166–173. 
+% [4]  Kubacek, L. (1988). Foundations of Estimation Theory. (Elsevier).
+% [5]  Witkovsky, V., Wimmer, G. (2021). Polycal-MATLAB algorithm for
+%      comparative polynomial calibration and its applications. In AMCTM
+%      XII, 501–512.
+% [6]  Koning, R., Wimmer, G., Witkovsk´, V. (2014). Ellipse fitting by
+%      nonlinear constraints to demodulate quadrature homodyne
+%      interferometer signals and to determine the statistical uncertainty
+%      of the interferometric phase. Measurement Science and Technology,
+%      25(11), 115001. 
+
+% Viktor Witkovsky (witkovsky@savba.sk)
+% Ver.: '07-Nov-2023 11:31:14'
 
 % Viktor Witkovsky (witkovsky@savba.sk)
 % Ver.: '16-Sep-2023 14:00:41'
