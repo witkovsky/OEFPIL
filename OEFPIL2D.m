@@ -318,20 +318,23 @@ if strcmpi(options.method,'jacobian')
         mu0   = mu0 + muDelta;
         betaDelta = mubetaDelta(m+idp);
         beta0 = beta0 + betaDelta;
-        funcrit = fun(mu0,nu0,beta0);
-        nuDelta = funcrit;
+        funcritvals  = fun(mu0,nu0,beta0);
+        nuDelta = funcritvals;
         nu0   = nu0 + nuDelta;
+        funcrit      = norm(funcritvals)/sqrt(m);
+        funcritvalsL = B1*[muDelta;nuDelta] + B2*betaDelta + b;
+        funcritL     = norm(funcritvalsL)/sqrt(m);
         xResiduals = x - mu0;
         yResiduals = y - nu0;
         LXYresiduals  = L\[xResiduals;yResiduals];
         if strcmpi(options.criterion,'function')
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
             crit  = max(abs(mubetaDelta./[mu0;beta0]));
         elseif strcmpi(options.criterion,'parameterdifferences')
             crit  = norm(mubetaDelta./[mu0;beta0]);
         else
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         end
     end
     Umubeta = FLLF \ eye(m+p);
@@ -351,7 +354,7 @@ elseif strcmpi(options.method,'oefpilvw')
         beta0        = beta0 + betaDelta;
         zB2betaDelta = z - B2*betaDelta;
         lambda       = B1UB1 \ zB2betaDelta;
-        munuDelta    =  xyDelta + U*B1'*lambda;
+        munuDelta    = xyDelta + U*B1'*lambda;
         muDelta      = munuDelta(idm);
         nuDelta      = munuDelta(m+idm);
         mu0          = mu0 + muDelta;
@@ -359,15 +362,16 @@ elseif strcmpi(options.method,'oefpilvw')
         xResiduals   = x - mu0;
         yResiduals   = y - nu0;
         LXYresiduals = L\[xResiduals;yResiduals];
-        funcrit      = fun(mu0,nu0,beta0);
+        funcritvals  = fun(mu0,nu0,beta0);
+        funcrit      = norm(funcritvals)/sqrt(m);
         if strcmpi(options.criterion,'function')
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
             crit  = norm(LXYresiduals)/sqrt(2*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
             crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
         else
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         end
     end
     Ubeta   = B2B1UB1B2\eye(p);
@@ -397,17 +401,20 @@ elseif any(strcmpi(options.method,{'oefpil','oefpilrs1'}))
         nu0   = nu0 + nuDelta;
         beta0 = beta0 + betaDelta;
         xResiduals = x - mu0;
-        yResiduals = y - nu0;
+        yResiduals = y - nu0; 
         LXYresiduals  = L\[xResiduals;yResiduals];
-        funcrit = fun(mu0,nu0,beta0);
+        funcritvals  = fun(mu0,nu0,beta0);
+        funcrit      = norm(funcritvals)/sqrt(m);
+        funcritvalsL = B1*munuDelta + B2*betaDelta + b;
+        funcritL     = norm(funcritvalsL)/sqrt(m);
         if strcmpi(options.criterion,'function')
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
             crit  = norm(LXYresiduals)/sqrt(2*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
             crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
         else
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         end
     end
     Ubeta   = -Q22;
@@ -440,15 +447,18 @@ elseif strcmpi(options.method,'oefpilrs2')
         xResiduals   = x - mu0;
         yResiduals   = y - nu0;
         LXYresiduals = L\[xResiduals;yResiduals];
-        funcrit      = fun(mu0,nu0,beta0);
+        funcritvals  = fun(mu0,nu0,beta0);
+        funcrit      = norm(funcritvals)/sqrt(m);
+        funcritvalsL = B1*munuDelta + B2*betaDelta + b;
+        funcritL     = norm(funcritvalsL)/sqrt(m);
         if strcmpi(options.criterion,'function')
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
             crit  = norm(LXYresiduals)/sqrt(2*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
             crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
         else
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         end
     end
     Ubeta   = -Q22;
@@ -480,15 +490,18 @@ else
         xResiduals   = x - mu0;
         yResiduals   = y - nu0;
         LXYresiduals = L\[xResiduals;yResiduals];
-        funcrit      = fun(mu0,nu0,beta0);
+        funcritvals  = fun(mu0,nu0,beta0);
+        funcrit      = norm(funcritvals)/sqrt(m);
+        funcritvalsL = B1*munuDelta + B2*betaDelta + b;
+        funcritL     = norm(funcritvalsL)/sqrt(m);
         if strcmpi(options.criterion,'function')
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
             crit  = norm(LXYresiduals)/sqrt(2*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
             crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
         else
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         end
     end
     Ubeta   = -Q22;
@@ -531,7 +544,8 @@ TABLE_info.m = m;
 TABLE_info.p = p;
 TABLE_info.ITERATIONS = iter;
 TABLE_info.CRITERION  = crit;
-TABLE_info.FUNCTION  = norm(funcrit)/sqrt(m);
+TABLE_info.FUNCTION   = funcrit;
+TABLE_info.FUNCCRIT_LIN = funcritL;
 TABLE_info.wRSS = LXYresiduals'*LXYresiduals;
 TABLE_info.xRSS = xResiduals'*xResiduals;
 TABLE_info.yRSS = yResiduals'*yResiduals;
@@ -581,7 +595,9 @@ result.details.idF2 = idF2;
 result.TABLE_beta = TABLE_beta;
 result.TABLE_INFO = TABLE_info;
 result.method = options.method;
-result.funcrit = norm(funcrit)/sqrt(m);
+result.funcrit = funcrit;
+result.funcritL = funcritL;
+result.funcrit  = funcrit;
 result.crit = crit;
 result.iter = iter;
 result.tictoc = tictoc;
