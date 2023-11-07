@@ -1,6 +1,6 @@
 function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %  OEFPIL Estimates the coefficients of a nonlinear (n-variate)
-%  Errors-in-Variables (EIV) model specified by the restrictions on its
+%  Errors-in-Variables (EIV) model specified by the constraints on its
 %  parameters. 
 %
 %  We assume a measurement model: X = mu + error with fun(mu, beta) = 0,
@@ -171,7 +171,7 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 % [5]  Witkovsky, V., Wimmer, G. (2021). Polycal-MATLAB algorithm for
 %      comparative polynomial calibration and its applications. In AMCTM
 %      XII, 501–512.
-% [6]  Koning, R., Wimmer, G., Witkovsk´, V. (2014). Ellipse fitting by
+% [6]  Koning, R., Wimmer, G., Witkovsky, V. (2014). Ellipse fitting by
 %      nonlinear constraints to demodulate quadrature homodyne
 %      interferometer signals and to determine the statistical uncertainty
 %      of the interferometric phase. Measurement Science and Technology,
