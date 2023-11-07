@@ -11,7 +11,7 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %
 %  The covariance matrix (uncertainty matrix) of X = (X1',...,Xn')' is
 %  assumed to be known (m*n x m*n)-dimensional matrix. U can be specied as
-%  an (n x n) cell array of (m x m)-dimensional matrices: That is, 
+%  an (n x n) cell array of (m x m)-dimensional matrices: That is,
 %  U = cell(n,n), and U{i,j} = cov(Xi, Xj) for i,j, = 1,...,n.
 %
 % SYNTAX:
@@ -24,13 +24,13 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %            = 1,..,n are m-dimensional column vectors.
 %  U       - (n*m x n*m)-dimensional uncertainty matrix, or (n x n)
 %            dimensional cell array of (m x m)-dimensional matrices: That
-%            is, U = cell(n,n), and U{i,j} = cov(Xi, Xj) for i,j, = 1,...,n. 
+%            is, U = cell(n,n), and U{i,j} = cov(Xi, Xj) for i,j, = 1,...,n.
 %            If empty, default value is U = eye(m*n). If U is cell array of
 %            size (n x 1) or (1 x n), then U is block digobnal matrix with
 %            its block matices specified as U = {U11, U22, ..., Unn}. If U
 %            is (n x n) cell array, its block matrices are specified as U =
 %            {U11, U12, ..., U1n; U21, U22, ..., U2n; ... ; Un1, ..., Unn}.
-%            As U is symmetric, Uji = Uij'. If Uji is not equal to Uij', 
+%            As U is symmetric, Uji = Uij'. If Uji is not equal to Uij',
 %            we set Uji = Uij' for j < i. If any diagonal block is empty,
 %            we set Uii = eye(m). If any off-diagonal block Uij i>j is
 %            empty, we set Uij = zeros(m) and Uji = zeros(m). If any block
@@ -42,7 +42,7 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %            parameters.
 %  mu0     - the (m x 1) or (1 x m)-dimensional vector of the initial
 %            values of the parameters specified in mu. In particular, mu0 =
-%            {mu01, ... , mu0n}. If empty, we set mu0 = {x1, ..., xn}. 
+%            {mu01, ... , mu0n}. If empty, we set mu0 = {x1, ..., xn}.
 %  beta0   - the p-dimensional vector of the initial values of the
 %            parameter vector beta0.
 %  options - structure with the following default values of the control
@@ -129,7 +129,7 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %     1.7172    1.7552   -0.1043
 %     0.1041    1.8793   -0.1497];
 %  [m,n] = size(data);
-%  sigma  = 0.075; 
+%  sigma  = 0.075;
 %  U = sigma^2*eye(m*n);
 %  fun = @(mu,beta) beta(1)*mu{1}.^2 + beta(2)*mu{2}.^2 + beta(3)*mu{3}.^2 ...
 %        + beta(4)*mu{1}.*mu{2} + beta(5)*mu{1}.*mu{3} ...
@@ -140,7 +140,7 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %  options.method = 'oefpil';
 %  options.criterion = 'parameterdifferences';
 %  result = OEFPIL(data,U,fun,mu0,beta0,options);
-% 
+%
 % REFERENCES
 % [1]  Charvatova Campbell, A., Slesinger, R., Klapetek, P., Chvostekova,
 %      M., Hajzokova, L., Witkovsky, V. and Wimmer, G. Locally best linear
@@ -273,10 +273,10 @@ if iscell(U)
         end
         for i = 1:mU
             for j = (i+1):nU
-                % The matrices in cells of symmetric UU are 
+                % The matrices in cells of symmetric UU are
                 % defined by upper triangular blocks.
-                % That is we require that UU{j,i} = UU{i,j}'; 
-                UU{j,i} = UU{i,j}'; 
+                % That is we require that UU{j,i} = UU{i,j}';
+                UU{j,i} = UU{i,j}';
                 if isempty(UU{i,j})
                     UU{i,j} = sparse(m,m);
                 elseif isvector(UU{i,j})
@@ -357,15 +357,21 @@ if strcmpi(options.method,'oefpilvw')
         mu0cell      = mat2cell(mu0Vec,m*ones(1,n),1);
         residuals    = xyzVec - mu0Vec;
         Lresiduals   = L\residuals;
-        funcrit      = fun(mu0cell,beta0);
+        funcritvals  = fun(mu0cell,beta0);
+        funcrit      = norm(funcritvals)/sqrt(m);
+        funcritvalsL = B1*muDelta + B2*betaDelta + b;
+        funcritL      = norm(funcritvalsL)/sqrt(m);
+        % %%%%%%%%%%%%%%%%%%%%%
+        % Space for INNER CYCLE
+        % %%%%%%%%%%%%%%%%%%%%%
         if strcmpi(options.criterion,'function')
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
             crit  = norm(Lresiduals)/sqrt(n*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
             crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*m+p);
         else
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         end
     end
     Ubeta   = B2B1UB1B2\eye(p);
@@ -392,16 +398,22 @@ elseif any(strcmpi(options.method,{'oefpil','oefpilrs1'}))
         betaDelta  = -Q21*u;
         beta0      = beta0 + betaDelta;
         residuals  = xyzVec - mu0Vec;
-        Lresiduals = L\residuals;
-        funcrit    = fun(mu0cell,beta0);
+        Lresiduals   = L\residuals;
+        funcritvals  = fun(mu0cell,beta0);
+        funcrit      = norm(funcritvals)/sqrt(m);
+        funcritvalsL = B1*muDelta + B2*betaDelta + b;
+        funcritL     = norm(funcritvalsL)/sqrt(m);
+        % %%%%%%%%%%%%%%%%%%%%%
+        % Space for INNER CYCLE
+        % %%%%%%%%%%%%%%%%%%%%%
         if strcmpi(options.criterion,'function')
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
             crit  = norm(Lresiduals)/sqrt(n*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
             crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*m+p);
         else
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         end
     end
     Ubeta   = -Q22;
@@ -429,15 +441,21 @@ elseif strcmpi(options.method,'oefpilrs2')
         beta0        = beta0 + betaDelta;
         residuals    = xyzVec - mu0Vec;
         Lresiduals   = L\residuals;
-        funcrit      = fun(mu0cell,beta0);
+        funcritvals  = fun(mu0cell,beta0);
+        funcrit      = norm(funcritvals)/sqrt(m);
+        funcritvalsL = B1*muDelta + B2*betaDelta + b;
+        funcritL     = norm(funcritvalsL)/sqrt(m);
+        % %%%%%%%%%%%%%%%%%%%%%
+        % Space for INNER CYCLE
+        % %%%%%%%%%%%%%%%%%%%%%
         if strcmpi(options.criterion,'function')
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
             crit  = norm(Lresiduals)/sqrt(n*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
             crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*m+p);
         else
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         end
     end
     Ubeta   = -Q22;
@@ -465,15 +483,21 @@ else
         beta0        = beta0 + betaDelta;
         residuals    = xyzVec - mu0Vec;
         Lresiduals   = L\residuals;
-        funcrit      = fun(mu0cell,beta0);
+        funcritvals  = fun(mu0cell,beta0);
+        funcrit      = norm(funcritvals)/sqrt(m);
+        funcritvalsL = B1*muDelta + B2*betaDelta + b;
+        funcritL     = norm(funcritvalsL)/sqrt(m);
+        % %%%%%%%%%%%%%%%%%%%%%
+        % Space for INNER CYCLE
+        % %%%%%%%%%%%%%%%%%%%%%
         if strcmpi(options.criterion,'function')
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
             crit  = norm(Lresiduals)/sqrt(n*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
             crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*m+p);
         else
-            crit  = norm(funcrit)/sqrt(m);
+            crit  = funcrit;
         end
     end
     Ubeta   = -Q22;
@@ -528,22 +552,22 @@ end
 TABLE_beta = table;
 TABLE_beta.Properties.Description = char(fun);
 TABLE_beta.ESTIMATE = beta0;
-TABLE_beta.STD  = ubeta;
-%TABLE_beta.DF = ((m-p)*ones(size(beta0));
-TABLE_beta.FACTOR = coverageFactor*ones(size(beta0));
-TABLE_beta.LOWER = beta0 - coverageFactor*ubeta;
-TABLE_beta.UPPER = beta0 + coverageFactor*ubeta;
-TABLE_beta.PVAL = 2*normcdf(-abs(beta0./ubeta));
+TABLE_beta.STD      = ubeta;
+TABLE_beta.FACTOR   = coverageFactor*ones(size(beta0));
+TABLE_beta.LOWER    = beta0 - coverageFactor*ubeta;
+TABLE_beta.UPPER    = beta0 + coverageFactor*ubeta;
+TABLE_beta.PVAL     = 2*normcdf(-abs(beta0./ubeta));
 TABLE_beta.Properties.RowNames = string(strcat('beta_',num2str((1:p)','%-d')));
 
 TABLE_info = table;
 TABLE_info.Properties.Description = 'convergence';
 TABLE_info.m = m;
 TABLE_info.p = p;
-TABLE_info.ITERATIONS = iter;
-TABLE_info.CRITERION  = crit;
-TABLE_info.FUNCTION  = norm(funcrit)/sqrt(m);
-TABLE_info.RSS = residuals'*residuals;
+TABLE_info.ITERATIONS   = iter;
+TABLE_info.CRITERION    = crit;
+TABLE_info.FUNCCRIT     = funcrit;
+TABLE_info.FUNCCRIT_LIN = funcritL;
+TABLE_info.RSS  = residuals'*residuals;
 TABLE_info.wRSS = Lresiduals'*Lresiduals;
 
 
@@ -562,36 +586,38 @@ end
 
 %% Results
 
-result.data = data;
-result.xyz = xyz;
-result.U = U;
-result.fun = fun;
-result.mu0 = mu0;
-result.mu = mu0cell;
-result.beta = beta0;
+result.data  = data;
+result.xyz   = xyz;
+result.U     = U;
+result.fun   = fun;
+result.mu0   = mu0;
+result.mu    = mu0cell;
+result.beta  = beta0;
 result.ubeta = ubeta;
 result.Ubeta = Ubeta;
 result.options = options;
 result.muDelta = muDelta;
-result.betaDelta = betaDelta;
-result.residuals = residuals;
-result.Lresiduals = Lresiduals;
-result.funcvals = funcrit;
-result.matrix.L = L;
+result.betaDelta    = betaDelta;
+result.residuals    = residuals;
+result.Lresiduals   = Lresiduals;
+result.funcritvals  = funcritvals;
+result.funcritvalsL = funcritvalsL;
+result.matrix.L  = L;
 result.matrix.B1 = B1;
 result.matrix.B2 = B2;
-result.matrix.b = b;
+result.matrix.b  = b;
 result.details.idB11 = idB11;
 result.details.idB12 = idB12;
-result.details.idF1 = idF1;
-result.details.idF2 = idF2;
-result.TABLE_beta = TABLE_beta;
-result.TABLE_INFO = TABLE_info;
-result.method = options.method;
-result.funcrit = norm(funcrit)/sqrt(m);
-result.crit = crit;
-result.iter = iter;
-result.tictoc = tictoc;
+result.details.idF1  = idF1;
+result.details.idF2  = idF2;
+result.TABLE_beta    = TABLE_beta;
+result.TABLE_INFO    = TABLE_info;
+result.method        = options.method;
+result.funcritL = funcritL;
+result.funcrit  = funcrit;
+result.crit     = crit;
+result.iter     = iter;
+result.tictoc   = tictoc;
 
 end
 %% FUNCTION OEFPIL_matrices
@@ -648,7 +674,7 @@ funDiff_beta = options.funDiff_beta;
 % Function fun evaluated at given mu0 and beta0
 fun_0 = fun(mu0,beta0);
 
-% Derivatives of the function fun with respect to mu, 
+% Derivatives of the function fun with respect to mu,
 % evaluated at given mu0 and beta0
 if isempty(funDiff_mu)
     dfun_mu0 = zeros(m,n_mu0);
