@@ -57,5 +57,5 @@ plot(xx,yy,'-')
 grid on
 xlabel('x')
 ylabel('y')
-legend('observed values','fitted values','fitted function','Location','northwest')
+legend('observed values','fitted values','fitted function','Location','northeast')
 title('Flow Meter Data: Observed vs. fitted values')
