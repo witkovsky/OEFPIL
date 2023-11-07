@@ -360,7 +360,7 @@ if strcmpi(options.method,'oefpilvw')
         funcritvals  = fun(mu0cell,beta0);
         funcrit      = norm(funcritvals)/sqrt(m);
         funcritvalsL = B1*muDelta + B2*betaDelta + b;
-        funcritL      = norm(funcritvalsL)/sqrt(m);
+        funcritL     = norm(funcritvalsL)/sqrt(m);
         % %%%%%%%%%%%%%%%%%%%%%
         % Space for INNER CYCLE
         % %%%%%%%%%%%%%%%%%%%%%
@@ -618,10 +618,9 @@ result.funcrit  = funcrit;
 result.crit     = crit;
 result.iter     = iter;
 result.tictoc   = tictoc;
-result.funcrit = funcrit;
-result.crit    = crit;
-result.iter    = iter;
-result.tictoc  = tictoc;
+result.crit     = crit;
+result.iter     = iter;
+result.tictoc   = tictoc;
 
 end
 %% FUNCTION OEFPIL_matrices
