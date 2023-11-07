@@ -402,7 +402,11 @@ elseif any(strcmpi(options.method,{'oefpil','oefpilrs1'}))
         funcritvals  = fun(mu0cell,beta0);
         funcrit      = norm(funcritvals)/sqrt(m);
         funcritvalsL = B1*muDelta + B2*betaDelta + b;
+<<<<<<< HEAD
         funcritL     = norm(funcritvalsL)/sqrt(m);
+=======
+        funcritL      = norm(funcritvalsL)/sqrt(m);
+>>>>>>> 4ea87336a2ca4a03757a53b0b42dc2a292b6a68a
         % %%%%%%%%%%%%%%%%%%%%%
         % Space for INNER CYCLE
         % %%%%%%%%%%%%%%%%%%%%%
@@ -444,7 +448,11 @@ elseif strcmpi(options.method,'oefpilrs2')
         funcritvals  = fun(mu0cell,beta0);
         funcrit      = norm(funcritvals)/sqrt(m);
         funcritvalsL = B1*muDelta + B2*betaDelta + b;
+<<<<<<< HEAD
         funcritL     = norm(funcritvalsL)/sqrt(m);
+=======
+        funcritL      = norm(funcritvalsL)/sqrt(m);
+>>>>>>> 4ea87336a2ca4a03757a53b0b42dc2a292b6a68a
         % %%%%%%%%%%%%%%%%%%%%%
         % Space for INNER CYCLE
         % %%%%%%%%%%%%%%%%%%%%%
@@ -486,7 +494,11 @@ else
         funcritvals  = fun(mu0cell,beta0);
         funcrit      = norm(funcritvals)/sqrt(m);
         funcritvalsL = B1*muDelta + B2*betaDelta + b;
+<<<<<<< HEAD
         funcritL     = norm(funcritvalsL)/sqrt(m);
+=======
+        funcritL      = norm(funcritvalsL)/sqrt(m);
+>>>>>>> 4ea87336a2ca4a03757a53b0b42dc2a292b6a68a
         % %%%%%%%%%%%%%%%%%%%%%
         % Space for INNER CYCLE
         % %%%%%%%%%%%%%%%%%%%%%
@@ -613,11 +625,18 @@ result.details.idF2  = idF2;
 result.TABLE_beta    = TABLE_beta;
 result.TABLE_INFO    = TABLE_info;
 result.method        = options.method;
+<<<<<<< HEAD
 result.funcritL = funcritL;
 result.funcrit  = funcrit;
 result.crit     = crit;
 result.iter     = iter;
 result.tictoc   = tictoc;
+=======
+result.funcrit = funcrit;
+result.crit    = crit;
+result.iter    = iter;
+result.tictoc  = tictoc;
+>>>>>>> 4ea87336a2ca4a03757a53b0b42dc2a292b6a68a
 
 end
 %% FUNCTION OEFPIL_matrices
