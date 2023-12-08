@@ -67,15 +67,21 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %            options.isPlot    = true;
 %            options.alpha     = 0.05;
 %            options.isSparse  = false;
-%            options.funDiff_mu = {};      % cell array of fun derivatives
-%                                          % with respect to mu{i}
+%            options.funDiff_mu = {};       % cell array of fun derivatives
+%                                           % with respect to mu{i}
 %            options.funDiff_beta = [];
-%            options.method = 'oefpil';    % default method (oefpilrs1)
-%            options.method = 'oefpilrs1'; % method 1 by Radek Slesinger
-%            options.method = 'oefpilrs2'; % method 2 by Radek Slesinger
-%            options.method = 'oefpilvw';  % simple by Viktor Witkovsky
+%            options.method  = 'oefpil';    % default method (oefpilrs1)
+%            options.method  = 'oefpilrs1'; % method 1 by Radek Slesinger
+%            options.method  = 'oefpilrs2'; % method 2 by Radek Slesinger
+%            options.method  = 'oefpilvw';  % simple by Viktor Witkovsky
+%            options.verbose = true;        % due to the compatibility
+%                                           % issue with GNU Octave, the
+%                                           % table creation is conditional
+%                                           % on the option.verbose
+%                                           % (default % value is true).
 %
-% EXAMPLE 1 (Straight-line calibration)
+% %EXAMPLE 1 (Straight-line calibration)
+%  clear
 %  x      = [4.0030 6.7160 9.3710 12.0530 15.2660 17.3510 ...
 %           20.0360 17.3690 14.7180 12.0390 9.3760 6.6970 4.0080]';
 %  y      = [0 10.1910 20.1020 30.1700 42.2300 50.0500 ...
@@ -99,7 +105,8 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %  options.criterion    = 'parameterdifferences';
 %  result = OEFPIL(data,U,fun,mu0,beta0,options);
 %
-% EXAMPLE 2 (Oliver-Phar function fit / fun(mu,nu,[0.75;-0.25;1.75]))
+% %EXAMPLE 2 (Oliver-Phar function fit / fun(mu,nu,[0.75;-0.25;1.75]))
+%  clear
 %  x      = [ 0.2505    2.6846    5.1221    7.5628   10.0018 ...
 %             0.2565    2.6858    5.1255    7.5623    9.9952 ...
 %             0.2489    2.6830    5.1271    7.5603   10.0003]';
@@ -121,7 +128,8 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %  options.criterion = 'parameterdifferences';
 %  result = OEFPIL(data,U,fun,mu0,beta0,options);
 %
-% EXAMPLE 3 (Ellipsoid fit)
+% %EXAMPLE 3 (Ellipsoid fit) 
+%  clear
 %  data = [...
 %    -1.7909    1.5814   -0.4781
 %     0.5736   -1.6966    0.6897
@@ -178,7 +186,7 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %      25(11), 115001. 
 
 % Viktor Witkovsky (witkovsky@savba.sk)
-% Ver.: '07-Nov-2023 13:02:46'
+% Ver.: '08-Dec-2023 13:15:34'
 
 %% CHECK THE INPUTS AND OUTPUTS
 narginchk(1, 6);
@@ -240,7 +248,6 @@ if ~isfield(options, 'method')
     %     options.method = 'oefpilvw';
     %     options.method = 'jacobian';
 end
-
 
 if iscell(data)
     n = length(data);
@@ -577,31 +584,32 @@ end
 
 %% TABLES Estimated model parameters beta
 
-TABLE_beta = table;
-TABLE_beta.Properties.Description = char(fun);
-TABLE_beta.ESTIMATE = beta0;
-TABLE_beta.STD      = ubeta;
-TABLE_beta.FACTOR   = coverageFactor*ones(size(beta0));
-TABLE_beta.LOWER    = beta0 - coverageFactor*ubeta;
-TABLE_beta.UPPER    = beta0 + coverageFactor*ubeta;
-TABLE_beta.PVAL     = 2*normcdf(-abs(beta0./ubeta));
-TABLE_beta.Properties.RowNames = string(strcat('beta_',num2str((1:p)','%-d')));
+if options.verbose
+    TABLE_beta = table;
+    TABLE_beta.Properties.Description = char(fun);
+    TABLE_beta.ESTIMATE = beta0;
+    TABLE_beta.STD      = ubeta;
+    TABLE_beta.FACTOR   = coverageFactor*ones(size(beta0));
+    TABLE_beta.LOWER    = beta0 - coverageFactor*ubeta;
+    TABLE_beta.UPPER    = beta0 + coverageFactor*ubeta;
+    TABLE_beta.PVAL     = 2*normcdf(-abs(beta0./ubeta));
+    TABLE_beta.Properties.RowNames = string(strcat('beta_',num2str((1:p)','%-d')));
 
-TABLE_info = table;
-TABLE_info.Properties.Description = 'convergence';
-TABLE_info.n = n;
-TABLE_info.m = m;
-TABLE_info.p = p;
-TABLE_info.q = q;
-TABLE_info.ITERATIONS   = iter;
-TABLE_info.CRITERION    = crit;
-TABLE_info.FUNCCRIT     = funcrit;
-TABLE_info.FUNCCRIT_LIN = funcritL;
-TABLE_info.wRSS = Lresiduals'*Lresiduals;
-TABLE_info.RSS  = residuals'*residuals;
+    TABLE_info = table;
+    TABLE_info.Properties.Description = 'convergence';
+    TABLE_info.n = n;
+    TABLE_info.m = m;
+    TABLE_info.p = p;
+    TABLE_info.q = q;
+    TABLE_info.ITERATIONS   = iter;
+    TABLE_info.CRITERION    = crit;
+    TABLE_info.FUNCCRIT     = funcrit;
+    TABLE_info.FUNCCRIT_LIN = funcritL;
+    TABLE_info.wRSS = Lresiduals'*Lresiduals;
+    TABLE_info.RSS  = residuals'*residuals;
+end
 
 %% SHOW TABLE
-
 if options.verbose
     disp(' ------------------------------------------------------------------------------- ')
     disp(['    OEFPIL ESTIMATION METHOD = ',char(options.method)])
@@ -643,8 +651,10 @@ result.details.idB11 = idB11;
 result.details.idB12 = idB12;
 result.details.idF1  = idF1;
 result.details.idF2  = idF2;
-result.TABLE_beta    = TABLE_beta;
-result.TABLE_INFO    = TABLE_info;
+if options.verbose
+    result.TABLE_beta    = TABLE_beta;
+    result.TABLE_INFO    = TABLE_info;
+end
 result.method        = options.method;
 result.funcritL = funcritL;
 result.funcrit  = funcrit;
