@@ -6,45 +6,45 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %  We assume a measurement model: X = mu + errorX, Y = nu + errorY with
 %  fun(mu,nu,beta) = 0, which represents q constraints on the model
 %  parameters. These constraints are given by the implicit nonlinear vector
-%  function. In this context, X and Y is an q-dimensional column vector of
+%  function. In this context, X and Y are m-dimensional column vectors of
 %  direct measurements, beta is a p-dimensional column vector of model
-%  parameters that are of primary interest, and mu and nu are an
-%  q-dimensional column vector representing the true unknown values
-%  (expectations of X and Y), which are considered as the model parameters
-%  of secondary interest.
+%  parameters that are of primary interest, and mu and nu are m-dimensional
+%  column vectors representing the true unknown values (expectations of X
+%  and Y), which are considered as the model parameters of secondary
+%  interest.
 %
-%  Here x and y represent the q-dimensional vectors of measurements,
+%  Here x and y represent the m-dimensional vectors of measurements,
 %  observed values of the random vectors X and Y.
 %
-%  The (m x m)-dimensional covariance matrix (uncertainty matrix), with m =
-%  2*q, is assumed to be known, U = [Ux, Uxy; Uyx Uy], where Ux = cov(X,X),
+%  The (N x N)-dimensional covariance matrix (uncertainty matrix), with N =
+%  2*m, is assumed to be known, U = [Ux, Uxy; Uyx Uy], where Ux = cov(X,X),
 %  Uxy = cov(X,Y) = Uyx', Uy = cov(Y,Y).
 %
 % SYNTAX:
 %    result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %
 % INPUTS
-%  x       - q-dimensional vector of the observed values of the input
+%  x       - m-dimensional vector of the observed values of the input
 %            quantity X = mu + errorX.
-%  y       - q-dimensional vector of the observed values of the input
+%  y       - m-dimensional vector of the observed values of the input
 %            quantity Y = mu + errorY.
-%  U       - (m x m)-dimensional uncertainty matrix, m = 2*q, where 
+%  U       - (N x N)-dimensional uncertainty matrix, N = 2*m, where 
 %            U = [Ux, Uxy; Uyx, Uy], or is defined as a cell structure U =
-%            {Ux, Uy, Uxy}, where, Ux - the (q x q)-dimensional uncertainty
-%            matrix of the quantity X, Uy - the (q x q)-dimensional
-%            uncertainty matrix of the quantity Y, Uxy- the (q x q)
+%            {Ux, Uy, Uxy}, where, Ux - the (m x m)-dimensional uncertainty
+%            matrix of the quantity X, Uy - the (m x m)-dimensional
+%            uncertainty matrix of the quantity Y, Uxy- the (m x m)
 %            dimensional covariance matrix of the quantities X and Y. If
-%            empty, default value is U = {eye(q), eye(q), zeros{q}}, where
-%            q = length(x).
+%            empty, default value is U = {eye(m), eye(m), zeros{m}}, where
+%            m = length(x).
 %  fun     - the anonymous q-dimensional column vector function of
-%            arguments mu (q-dimensional column vector), nu (q-dimensional
+%            arguments mu (m-dimensional column vector), nu (m-dimensional
 %            column vector), and beta (p-dimensional vector),  where
 %            fun(mu,nu,beta) = 0 represent the q constraints on the model
 %            parameters. If empty, default value is a (straight-line)
 %            function, fun = @(mu,nu,beta) beta(1) + beta(2)*mu - nu.
-%  mu0     - the q-dimensional vector of the initial values of the
+%  mu0     - the m-dimensional vector of the initial values of the
 %            parameter vector mu.
-%  nu0     - the q-dimensional vector of the initial values of the
+%  nu0     - the m-dimensional vector of the initial values of the
 %            parameter vector nu.
 %  beta0   - the p-dimensional vector of the initial values of the
 %            parameter vector nbeta.
@@ -69,6 +69,16 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %            options.method = 'oefpilvw';  % simple by Viktor Witkovsky
 %            options.method = 'jacobian';  % method based on linearized
 %                                          % model with Jacobian
+%            options.q = [];               % specify nymber of constraints
+%                                          % if it is different from m. If
+%                                          % empty we set the default value
+%                                          % q = m. 
+%            options.isEstimatedVariance = false; % If true, the algorithm
+%                                          % assumes that the covariance
+%                                          % matrix of measurements is
+%                                          % Sigma = sigma2*U (instead of
+%                                          % Sigma = U) and estimates 
+%                                          % the scalar parameter sigma2
 %
 % EXAMPLE 1 (Straight-line calibration)
 %  x      = [4.0030 6.7160 9.3710 12.0530 15.2660 17.3510 ...
@@ -76,13 +86,13 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %  y      = [0 10.1910 20.1020 30.1700 42.2300 50.0500 ...
 %           60.0700 50.0800 40.1150 30.0890 20.0950 10.0700 0]';
 %  fun    = @(mu,nu,beta) beta(1) + beta(2) .* mu - nu;
-%  q      = length(x);
+%  m      = length(x);
 %  uxA    = sqrt(0.00001444);
 %  uxB    = 0.0014;
-%  Ux     = uxA^2*eye(q) + uxB^2*ones(q);
+%  Ux     = uxA^2*eye(m) + uxB^2*ones(m);
 %  uyA    = sqrt(0.000036);
 %  uyB    = sqrt(0.000036);
-%  Uy     = uyA^2*eye(q) + uyB^2*ones(q);
+%  Uy     = uyA^2*eye(m) + uyB^2*ones(m);
 %  Uxy    = [];
 %  mu0    = x;
 %  nu0    = y;
@@ -102,11 +112,11 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %            0.2110    4.9517   14.2306   27.3937   44.0172 ...
 %            0.2303    4.9406   14.2690   27.3982   44.0611]';
 %  k     = 5;
-%  q     = 15;
-%  Ux    = 0.05^2*eye(q);
+%  m     = 15;
+%  Ux    = 0.05^2*eye(m);
 %  Uyblk = 0.1^2*eye(k)+ 0.05^2*ones(k);
 %  Uy    = blkdiag(Uyblk,Uyblk,Uyblk);
-%  Uxy   = zeros(q);
+%  Uxy   = zeros(m);
 %  U     = [Ux Uxy; Uxy' Uy];
 %  fun   = @(mu,nu,beta) beta(1).*(mu-beta(2)).^beta(3) - nu;
 %  mu0   = x;
@@ -127,7 +137,7 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %  y   = [-1.4040e+00 -1.1500e+00 -6.0900e-01 2.6200e-01 9.8000e-01 ...
 %         1.9290e+00 1.3400e+00 -2.5400e-01 -1.3800e+00 -2.4220e+00 ...
 %         -5.2990e+00]';
-%  q   = 11;
+%  m   = 11;
 %  Ux1 = [9.7000e+00 3.1000e+00 1.1000e+00 2.7000e-01 8.7000e-02 7.1000e-03;
 %         3.1000e+00 6.3000e+00 1.1000e+00 2.7000e-01 8.7000e-02 7.1000e-03;
 %         1.1000e+00 1.1000e+00 2.3000e+00 2.7000e-01 8.7000e-02 7.1000e-03;
@@ -143,7 +153,7 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %  Uy  = diag([1.0240e-03 3.7210e-03 2.6010e-03 1.7640e-03 3.7210e-03 ...
 %              4.0960e-03 3.3640e-03 3.2490e-03 6.0840e-03 6.2410e-03 ...
 %              1.0609e-02]);
-%  Uxy = zeros(q);
+%  Uxy = zeros(m);
 %  fun = @(mu,nu,beta) beta(1)*mu.^(-1) + beta(2)*mu.^(-0.5) + ...
 %        beta(3) + beta(4)*mu.^(0.5) + beta(5)*mu - nu;
 %  mu0 = x;
@@ -180,7 +190,7 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %      25(11), 115001. 
 
 % Viktor Witkovsky (witkovsky@savba.sk)
-% Ver.: '07-Nov-2023 13:02:46'
+% Ver.: 06-Jan-2024 12:29:56
 
 %% CHECK THE INPUTS AND OUTPUTS
 narginchk(2, 8);
@@ -243,36 +253,49 @@ if ~isfield(options, 'method')
     %     options.method = 'jacobian';
 end
 
+if ~isfield(options, 'q')
+    options.q = [];
+end
+
+if ~isfield(options, 'isEstimatedVariance')
+    options.isEstimatedVariance = false;
+end
+
 x   = x(:);
 y   = y(:);
 n   = 2;
-q   = length(x);
-m   = q*n;
-idq = 1:q;
+m   = length(x);
+N   = m*n;
+idm = 1:m;
+
+if isempty(options.q)
+    options.q = m;
+end
+q = options.q;
 
 if isempty(U)
-    U = speye(m);
+    U = speye(N);
 else
     if iscell(U)
         if isempty(U{1})
-            U{1} = speye(q);
+            U{1} = speye(m);
         else
             if isvector(U{1})
-                U{1} = sparse(idq,idq,U{1});
+                U{1} = sparse(idm,idm,U{1});
             end
         end
         if isempty(U{2})
-            U{2} = speye(q);
+            U{2} = speye(m);
         else
             if isvector(U{2})
-                U{2} = sparse(idq,idq,U{2});
+                U{2} = sparse(idm,idm,U{2});
             end
         end
         if isempty(U{3})
-            U{3} = sparse(q,q);
+            U{3} = sparse(m,m);
         else
             if isvector(U{3})
-                U{3} = sparse(idq,idq,U{3});
+                U{3} = sparse(idm,idm,U{3});
             end
         end
         U = [U{1} U{3}; U{3} U{2}];
@@ -289,7 +312,7 @@ end
 
 if isempty(fun)
     fun = @(mu,nu,beta) beta(1) + beta(2) .* mu - nu;
-    X = [ones(q,1) x];
+    X = [ones(m,1) x];
     beta0 = (X'*X) \ (X'*y);
 end
 
@@ -309,10 +332,17 @@ else
 end
 
 idp   = 1:p;
-idB11 = [idq idq];
-idB12 = [idq q+idq];
-idF1  = [idq idq+q q+kron(ones(1,p),idq)];
-idF2  = [idq idq kron(q+idp,ones(1,q))];
+idB11 = [idm idm];
+idB12 = [idm m+idm];
+idF1  = [idm idm+m m+kron(ones(1,p),idm)];
+idF2  = [idm idm kron(m+idp,ones(1,m))];
+Q11 = [];
+Q21 = [];
+Q22 = [];
+Umunu = [];
+umunu = [];
+Umubeta = [];
+Umunubeta = [];
 
 %% ALGORITHM
 tic;
@@ -339,16 +369,16 @@ if strcmpi(options.method,'jacobian')
         FLLF = FL' * FL;
         LXY  = L\[x - mu0;y - nu0];
         mubetaDelta = FLLF \ (FL' * LXY);
-        muDelta = mubetaDelta(idq);
+        muDelta = mubetaDelta(idm);
         mu0   = mu0 + muDelta;
-        betaDelta = mubetaDelta(q+idp);
+        betaDelta = mubetaDelta(m+idp);
         beta0 = beta0 + betaDelta;
         funcritvals  = fun(mu0,nu0,beta0);
         nuDelta = funcritvals;
         nu0   = nu0 + nuDelta;
-        funcrit      = norm(funcritvals)/sqrt(q);
+        funcrit      = norm(funcritvals)/sqrt(m);
         funcritvalsL = B1*[muDelta;nuDelta] + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(q);
+        funcritL     = norm(funcritvalsL)/sqrt(m);
         xResiduals = x - mu0;
         yResiduals = y - nu0;
         LXYresiduals  = L\[xResiduals;yResiduals];
@@ -362,8 +392,8 @@ if strcmpi(options.method,'jacobian')
             crit  = funcrit;
         end
     end
-    Umubeta = FLLF \ eye(q+p);
-    Ubeta   = Umubeta(q+idp,q+idp);
+    Umubeta = FLLF \ eye(m+p);
+    Ubeta   = Umubeta(m+idp,m+idp);
     ubeta   = sqrt(diag(Ubeta));
 elseif strcmpi(options.method,'oefpilvw')
     % OEFPILVW / straightforward method suggested by VW
@@ -380,23 +410,23 @@ elseif strcmpi(options.method,'oefpilvw')
         zB2betaDelta = z - B2*betaDelta;
         lambda       = B1UB1 \ zB2betaDelta;
         munuDelta    = xyDelta + U*B1'*lambda;
-        muDelta      = munuDelta(idq);
-        nuDelta      = munuDelta(q+idq);
+        muDelta      = munuDelta(idm);
+        nuDelta      = munuDelta(m+idm);
         mu0          = mu0 + muDelta;
         nu0          = nu0 + nuDelta;
         xResiduals   = x - mu0;
         yResiduals   = y - nu0;
         LXYresiduals = L\[xResiduals;yResiduals];
         funcritvals  = fun(mu0,nu0,beta0);
-        funcrit      = norm(funcritvals)/sqrt(q);
+        funcrit      = norm(funcritvals)/sqrt(m);
         funcritvalsL = B1*munuDelta + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(q);
+        funcritL     = norm(funcritvalsL)/sqrt(m);
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(LXYresiduals)/sqrt(2*q);
+            crit  = norm(LXYresiduals)/sqrt(2*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
-            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*q+p);
+            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
         else
             crit  = funcrit;
         end
@@ -416,13 +446,13 @@ elseif any(strcmpi(options.method,{'oefpil','oefpilrs1'}))
         F   = VE * diag(1./diag(SE));
         G   = LM' \ UE(:,1:p);
         Q21 = F*G';
-        LMi = LM \ eye(q);
+        LMi = LM \ eye(m);
         Q11 = LMi'*LMi - G*G';
         Q22 = -F*F'; %%% VW Corrected !!! Changed the sign to minus
         u   = B1*xyDelta + b; %%% VW Corrected !!! Changed the sing to + b
         munuDelta = xyDelta - U*B1'*Q11*u;
-        muDelta = munuDelta(idq);
-        nuDelta = munuDelta(q+idq);
+        muDelta = munuDelta(idm);
+        nuDelta = munuDelta(m+idm);
         betaDelta = -Q21*u;
         mu0   = mu0 + muDelta;
         nu0   = nu0 + nuDelta;
@@ -431,21 +461,25 @@ elseif any(strcmpi(options.method,{'oefpil','oefpilrs1'}))
         yResiduals = y - nu0; 
         LXYresiduals  = L\[xResiduals;yResiduals];
         funcritvals  = fun(mu0,nu0,beta0);
-        funcrit      = norm(funcritvals)/sqrt(q);
+        funcrit      = norm(funcritvals)/sqrt(m);
         funcritvalsL = B1*munuDelta + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(q);
+        funcritL     = norm(funcritvalsL)/sqrt(m);
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(LXYresiduals)/sqrt(2*q);
+            crit  = norm(LXYresiduals)/sqrt(2*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
-            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*q+p);
+            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
         else
             crit  = funcrit;
         end
     end
     Ubeta   = -Q22;
     ubeta   = sqrt(diag(Ubeta));
+    Umunu   = U - U*B1'*Q11*B1*U;
+    umunu   = sqrt(diag(Umunu));
+    Umb     = -U*B1'*Q21';
+    Umunubeta = [Umunu Umb; Umb' Ubeta];
     %elseif strcmpi(options.method,'oefpil2')
 elseif strcmpi(options.method,'oefpilrs2')
     % OEFPILRS2 / method 2 by Radek Slesinger
@@ -465,8 +499,8 @@ elseif strcmpi(options.method,'oefpilrs2')
         vw           = v - QE*w;
         LMvw         = LM' \ vw;
         munuDelta    = xyDelta - U*B1'*LMvw;
-        muDelta      = munuDelta(idq);
-        nuDelta      = munuDelta(q+idq);
+        muDelta      = munuDelta(idm);
+        nuDelta      = munuDelta(m+idm);
         mu0          = mu0 + muDelta;
         nu0          = nu0 + nuDelta;
         betaDelta    = -RE(1:p,:) \ w;
@@ -475,21 +509,31 @@ elseif strcmpi(options.method,'oefpilrs2')
         yResiduals   = y - nu0;
         LXYresiduals = L\[xResiduals;yResiduals];
         funcritvals  = fun(mu0,nu0,beta0);
-        funcrit      = norm(funcritvals)/sqrt(q);
+        funcrit      = norm(funcritvals)/sqrt(m);
         funcritvalsL = B1*munuDelta + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(q);
+        funcritL     = norm(funcritvalsL)/sqrt(m);
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(LXYresiduals)/sqrt(2*q);
+            crit  = norm(LXYresiduals)/sqrt(2*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
-            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*q+p);
+            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
         else
             crit  = funcrit;
+        end
+        if options.verbose
+            Q21 = REi*QE' / LM;
+            Q11 = (LM' \ (eye(q) - QE*QE')) / LM;
         end
     end
     Ubeta   = -Q22;
     ubeta   = sqrt(diag(Ubeta));
+    if options.verbose
+        Umunu   = U - U*B1'*Q11*B1*U;
+        umunu   = sqrt(diag(Umunu));
+        Umb     = -U*B1'*Q21';
+        Umunubeta = [Umunu Umb; Umb' Ubeta];
+    end
 else
     % OEFPILRS2 / method 2 by Radek Slesinger
     while crit > tol && iter < maxit
@@ -508,8 +552,8 @@ else
         vw           = v - QE*w;
         LMvw         = LM' \ vw;
         munuDelta    = xyDelta - U*B1'*LMvw;
-        muDelta      = munuDelta(idq);
-        nuDelta      = munuDelta(q+idq);
+        muDelta      = munuDelta(idm);
+        nuDelta      = munuDelta(m+idm);
         mu0          = mu0 + muDelta;
         nu0          = nu0 + nuDelta;
         betaDelta    = -RE(1:p,:) \ w;
@@ -518,21 +562,45 @@ else
         yResiduals   = y - nu0;
         LXYresiduals = L\[xResiduals;yResiduals];
         funcritvals  = fun(mu0,nu0,beta0);
-        funcrit      = norm(funcritvals)/sqrt(q);
+        funcrit      = norm(funcritvals)/sqrt(m);
         funcritvalsL = B1*munuDelta + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(q);
+        funcritL     = norm(funcritvalsL)/sqrt(m);
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(LXYresiduals)/sqrt(2*q);
+            crit  = norm(LXYresiduals)/sqrt(2*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
-            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*q+p);
+            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
         else
             crit  = funcrit;
+        end
+        if options.verbose
+            Q21 = REi*QE' / LM;
+            Q11 = (LM' \ (eye(q) - QE*QE')) / LM;
         end
     end
     Ubeta   = -Q22;
     ubeta   = sqrt(diag(Ubeta));
+    if options.verbose
+        Umunu   = U - U*B1'*Q11*B1*U;
+        umunu   = sqrt(diag(Umunu));
+        Umb     = -U*B1'*Q21';
+        Umunubeta = [Umunu Umb; Umb' Ubeta];
+    end
+end
+
+
+% Estimated scalar variance component sigma2 (we assume Sigma = sigma^2*U)
+sig2Hat = (LXYresiduals'*LXYresiduals) / (q-p);
+
+% Adjusted covariance matrix of estimators
+% premultiplied by the estimated sigma2
+if options.isEstimatedVariance
+    Ubeta   = sig2Hat * Ubeta;
+    ubeta   = sqrt(diag(Ubeta));
+    Umunu   = sig2Hat * Umunu;
+    umunu   = sqrt(diag(Umunu));
+    Umunubeta = sig2Hat * Umunubeta;
 end
 
 tictoc = toc;
@@ -601,10 +669,16 @@ result.fun = fun;
 result.mu = mu0;
 result.nu = nu0;
 result.beta  = beta0;
+result.sigma2 = sig2Hat;
 result.ubeta = ubeta;
 result.Ubeta = Ubeta;
+result.umunu = umunu;
+result.Umunu = Umunu;
+result.Umunubeta = Umunubeta;
+result.Umubeta = Umubeta;
 result.n = n;
 result.m = m;
+result.N = N;
 result.p = p;
 result.q = q;
 result.options = options;
@@ -621,6 +695,10 @@ result.matrix.B1 = B1;
 result.matrix.B2 = B2;
 result.matrix.b  = b;
 result.matrix.J  = J;
+result.matrix.Q11 = Q11;
+result.matrix.Q12 = Q21';
+result.matrix.Q21 = Q21;
+result.matrix.Q22 = Q22;
 result.details.idB11 = idB11;
 result.details.idB12 = idB12;
 result.details.idF1  = idF1;
@@ -628,6 +706,7 @@ result.details.idF2  = idF2;
 result.TABLE_beta    = TABLE_beta;
 result.TABLE_INFO    = TABLE_info;
 result.method        = options.method;
+result.isEstimatedVariance = options.isEstimatedVariance;
 result.funcritL = funcritL;
 result.funcrit  = funcrit;
 result.crit     = crit;
