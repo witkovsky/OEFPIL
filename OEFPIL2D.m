@@ -63,7 +63,6 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %            options.funDiff_mu = [];
 %            options.funDiff_nu = [];
 %            options.funDiff_beta = [];
-<<<<<<< HEAD
 %            options.method = 'oefpil';    % default method (oefpilrs1)
 %            options.method = 'oefpilrs1'; % method 1 by Radek Slesinger
 %            options.method = 'oefpilrs2'; % method 2 by Radek Slesinger
@@ -80,22 +79,8 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %                                          % Sigma = sigma2*U (instead of
 %                                          % Sigma = U) and estimates 
 %                                          % the scalar parameter sigma2
-=======
-%            options.method = 'oefpil';     % default method (oefpilrs1)
-%            options.method = 'oefpilrs1';  % method 1 by Radek Slesinger
-%            options.method = 'oefpilrs2';  % method 2 by Radek Slesinger
-%            options.method = 'oefpilvw';   % simple by Viktor Witkovsky
-%            options.method = 'jacobian';   % method based on linearized
-%                                           % model with Jacobian
-%            options.verbose = true;        % due to the compatibility
-%                                           % issue with GNU Octave, the
-%                                           % table creation is conditional
-%                                           % on the option.verbose
-%                                           % (default % value is true).
->>>>>>> fd53d7d4c28c91d293e5bb82aa796bb88fd9326e
 %
-% %EXAMPLE 1 (Straight-line calibration)
-%  clear
+% EXAMPLE 1 (Straight-line calibration)
 %  x      = [4.0030 6.7160 9.3710 12.0530 15.2660 17.3510 ...
 %           20.0360 17.3690 14.7180 12.0390 9.3760 6.6970 4.0080]';
 %  y      = [0 10.1910 20.1020 30.1700 42.2300 50.0500 ...
@@ -119,8 +104,7 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %  options.criterion    = 'parameterdifferences';
 %  result = OEFPIL2D(x,y,{Ux,Uy,Uxy},fun,mu0,nu0,beta0,options);
 %
-% %EXAMPLE 2 (Oliver-Phar function fit / fun(mu,nu,[0.75;-0.25;1.75]))
-%  clear
+% EXAMPLE 2 (Oliver-Phar function fit / fun(mu,nu,[0.75;-0.25;1.75]))
 %  x     = [ 0.2505    2.6846    5.1221    7.5628   10.0018 ...
 %            0.2565    2.6858    5.1255    7.5623    9.9952 ...
 %            0.2489    2.6830    5.1271    7.5603   10.0003]';
@@ -146,8 +130,7 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %                        beta(1).*(mu-beta(2)).^beta(3).*log(mu-beta(2))];
 %  result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options);
 %
-% %EXAMPLE 3 (Flow Meter Calibration / Fractional Polynomial Calibration)
-%  clear
+% EXAMPLE 3 (Flow Meter Calibration / Fractional Polynomial Calibration)
 %  x   = [3.1100e+03 2.5000e+03 1.5000e+03 7.4000e+02 4.2200e+02 ...
 %         1.2000e+02 2.5000e+01 1.0000e+01 7.0000e+00 5.5000e+00 ...
 %         3.2500e+00]';
@@ -207,11 +190,7 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %      25(11), 115001. 
 
 % Viktor Witkovsky (witkovsky@savba.sk)
-<<<<<<< HEAD
 % Ver.: 06-Jan-2024 12:29:56
-=======
-% Ver.: '08-Dec-2023 13:15:34'
->>>>>>> fd53d7d4c28c91d293e5bb82aa796bb88fd9326e
 
 %% CHECK THE INPUTS AND OUTPUTS
 narginchk(2, 8);
@@ -643,31 +622,30 @@ if options.isPlot
 end
 
 %% TABLES Estimated model parameters beta
-if options.verbose
-    TABLE_beta = table;
-    TABLE_beta.Properties.Description = char(fun);
-    TABLE_beta.ESTIMATE = beta0;
-    TABLE_beta.STD      = ubeta;
-    TABLE_beta.FACTOR   = coverageFactor*ones(size(beta0));
-    TABLE_beta.LOWER    = beta0 - coverageFactor*ubeta;
-    TABLE_beta.UPPER    = beta0 + coverageFactor*ubeta;
-    TABLE_beta.PVAL     = 2*normcdf(-abs(beta0./ubeta));
-    TABLE_beta.Properties.RowNames = string(strcat('beta_',num2str((1:p)','%-d')));
 
-    TABLE_info = table;
-    TABLE_info.Properties.Description = 'convergence';
-    TABLE_info.n = n;
-    TABLE_info.m = m;
-    TABLE_info.p = p;
-    TABLE_info.q = q;
-    TABLE_info.ITERATIONS = iter;
-    TABLE_info.CRITERION  = crit;
-    TABLE_info.FUNCTION   = funcrit;
-    TABLE_info.FUNCCRIT_LIN = funcritL;
-    TABLE_info.wRSS = LXYresiduals'*LXYresiduals;
-    TABLE_info.xRSS = xResiduals'*xResiduals;
-    TABLE_info.yRSS = yResiduals'*yResiduals;
-end
+TABLE_beta = table;
+TABLE_beta.Properties.Description = char(fun);
+TABLE_beta.ESTIMATE = beta0;
+TABLE_beta.STD      = ubeta;
+TABLE_beta.FACTOR   = coverageFactor*ones(size(beta0));
+TABLE_beta.LOWER    = beta0 - coverageFactor*ubeta;
+TABLE_beta.UPPER    = beta0 + coverageFactor*ubeta;
+TABLE_beta.PVAL     = 2*normcdf(-abs(beta0./ubeta));
+TABLE_beta.Properties.RowNames = string(strcat('beta_',num2str((1:p)','%-d')));
+
+TABLE_info = table;
+TABLE_info.Properties.Description = 'convergence';
+TABLE_info.n = n;
+TABLE_info.m = m;
+TABLE_info.p = p;
+TABLE_info.q = q;
+TABLE_info.ITERATIONS = iter;
+TABLE_info.CRITERION  = crit;
+TABLE_info.FUNCTION   = funcrit;
+TABLE_info.FUNCCRIT_LIN = funcritL;
+TABLE_info.wRSS = LXYresiduals'*LXYresiduals;
+TABLE_info.xRSS = xResiduals'*xResiduals;
+TABLE_info.yRSS = yResiduals'*yResiduals;
 
 %% SHOW TABLE
 
@@ -725,10 +703,8 @@ result.details.idB11 = idB11;
 result.details.idB12 = idB12;
 result.details.idF1  = idF1;
 result.details.idF2  = idF2;
-if options.verbose
-    result.TABLE_beta    = TABLE_beta;
-    result.TABLE_INFO    = TABLE_info;
-end
+result.TABLE_beta    = TABLE_beta;
+result.TABLE_INFO    = TABLE_info;
 result.method        = options.method;
 result.isEstimatedVariance = options.isEstimatedVariance;
 result.funcritL = funcritL;
