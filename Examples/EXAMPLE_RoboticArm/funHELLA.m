@@ -89,9 +89,9 @@ function [f, fmat, beta, mu, XYZ0, Rxyz, Rzyx, Rx, Ry, Rz] = funHELLA(mu, beta, 
 %    588.8004  138.9699   62.9427
 %    599.7204  106.8150   88.3801
 %    592.3842  135.6058   92.5391];
-% % Specified uncertainty matrix U
-%   sigma = [1 1 1] / 10000;
-%   U = {sigma(1) * eye(m), sigma(2) * eye(m), sigma(3) * eye(m)};
+% % Specified uncertainty matrix U. 
+% % If empty, the algorithm OEFFPIL will change and set U = I 
+%   U = [];
 % % Constraints on the model parameters specific for the required
 % % translation-rotation transformation
 %   fun = @(mu, beta) funHELLA(mu, beta, XYZ0);
@@ -101,6 +101,10 @@ function [f, fmat, beta, mu, XYZ0, Rxyz, Rzyx, Rx, Ry, Rz] = funHELLA(mu, beta, 
 % % Specified controls/options for the algorithm OEFPIL
 %   options.tol = 1e-13;
 %   options.q = 36; % Number of restrictions on parameters specified by fun
+% % as we have no specific knowledge about  the covariance matrix of
+% % measurements we assume Sigma = sigma2* U, and the scalar variance
+% % sigma2 is subsequently estimated from residuals.   
+%   options.isEstimatedVariance = true;
 % % Run the algorithm OEFPIL
 %   result = OEFPIL(XYZ, U, fun, mu0, beta0, options);
 %
@@ -116,7 +120,7 @@ function [f, fmat, beta, mu, XYZ0, Rxyz, Rzyx, Rx, Ry, Rz] = funHELLA(mu, beta, 
 %      Herzegovina, 26-28 September 2023.
 
 % Viktor Witkovsky (witkovsky@savba.sk)
-% Ver.: 06-Jan-2024 12:29:56
+% Ver.: 07-Jan-2024 12:26:21
 
 %% ALGORITHM
 if iscell(mu)
