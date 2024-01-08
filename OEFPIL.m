@@ -3,33 +3,27 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 % Errors-in-Variables (EIV) model specified by constraints on its parameters.
 %
 % We assume a measurement model: X = mu + error with fun(mu, beta) = 0,
-% which represents q constraints on the model parameters. These
-% constraints are given by the implicit nonlinear vector function. In this
-% context, X is an m-dimensional column vector of direct measurements,
-% beta is a p-dimensional column vector of model parameters that are of
-% primary interest, and mu is an m-dimensional column vector representing
-% the true unknown values (expectations of X), considered as the model
-% parameters of secondary interest.
+% where X represents an N-dimensional (random) column vector of direct
+% measurements, and fun represents q constraints on the model parameters,
+% given by the implicit nonlinear vector function. In a more general
+% context, X can be split into n subvectors. Further, beta is a
+% p-dimensional column vector of model parameters that are of primary
+% interest, and mu is an N-dimensional column vector representing the true
+% unknown values (expectations of X), considered as the model parameters of
+% secondary interest.
 %
-% Here, the data represents a (m x n)-dimensional matrix or an
-% n-dimensional cell vector of m-dimensional vectors. It comprises the
-% observed values (measurements) of m-dimensional random vectors X1, X2,
-% ..., Xn, collectively forming the m*n-dimensional vector X = (X1', ...,
-% Xn')'.
+% Here, the data is represented as a (m x n)-dimensional matrix or an
+% n-dimensional cell array of split (observed) subvectors x1, x2, ..., xn,
+% collectively forming the N-dimensional vector of observations x = (x1',
+% ..., xn')'. 
 %
-% The covariance matrix (uncertainty matrix) of X = (X1',...,Xn')' is
-% assumed to be known (m*n x m*n)-dimensional matrix. U can be specified
-% as an (n x n) cell array of (m x m)-dimensional matrices: That is,
-% U = cell(n,n), and U{i,j} = cov(Xi, Xj) for i,j, = 1,...,n. If empty,
-% the default value is U = eye(m*n). If U is a cell array of size (n x 1)
-% or (1 x n), then U is a block-diagonal matrix with its block matrices
-% specified as U = {U11, U22, ..., Unn}. If U is an (n x n) cell array,
-% its block matrices are specified as U = {U11, U12, ..., U1n; U21, U22,
-% ..., U2n; ... ; Un1, ..., Unn}. As U is symmetric, Uji = Uij'. If Uji
-% is not equal to Uij', we set Uji = Uij' for j < i. If any diagonal
-% block is empty, we set Uii = eye(m). If any off-diagonal block Uij i>j
-% is empty, we set Uij = zeros(m) and Uji = zeros(m). If any block of the
-% cell array is an m-dimensional vector, we set Uij = diag(Uij).
+% The covariance matrix Sigma of X = (X1',...,Xn')' is specified either by
+% the uncertainty matrix U as Sigma = U, or as proportional to the
+% uncertainty matrix U, Sigma = sigma2*U, where the uncertainty matrix U is
+% assumed to be a known (N x N)-dimensional matrix and sigma2 is considered
+% to be an unknown scalar variance parameter. U can be specified as an 
+% (n x n) cell array of block matrices, U{i,j} = cov(Xi, Xj) for i, j =
+% 1,...,n. 
 %
 % SYNTAX:
 %    result = OEFPIL(data, U, fun, mu0, beta0, options)
@@ -37,31 +31,36 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 % INPUTS
 %  data    - (m x n)-dimensional matrix of measurements of the random
 %            vectors X1, X2, ..., Xn. Alternatively, data is an
-%            n-dimensional cell vector of m-dimensional vectors, i.e., data
-%            = {x1, x2, ..., xn}, where xi, i = 1, ..., n are m-dimensional
-%            column vectors.
-%  U       - (n*m x n*m)-dimensional uncertainty matrix, or (n x n)
-%            dimensional cell array of (m x m)-dimensional matrices: That
-%            is, U = cell(n,n), and U{i,j} = cov(Xi, Xj) for i,j, =
-%            1,...,n. If empty, the default value is U = eye(m*n). If U is
-%            a cell array of size (n x 1) or (1 x n), then U is a block
-%            diagonal matrix with its block matrices specified as U = {U11,
-%            U22, ..., Unn}. If U is (n x n) cell array, its block matrices
-%            are specified as U = {U11, U12, ..., U1n; U21, U22, ..., U2n;
-%            ... ; Un1, ..., Unn}. As U is symmetric, Uji = Uij'. If Uji is
-%            not equal to Uij', we set Uji = Uij' for j < i. If any
-%            diagonal block is empty, we set Uii = eye(m). If any
-%            off-diagonal block Uij i>j is empty, we set Uij = zeros(m) and
-%            Uji = zeros(m). If any block of the cell array is an
-%            m-dimensional vector, we set Uij = diag(Uij).
+%            n-dimensional cell array of subvectors, i.e., data
+%            = {x1, x2, ..., xn}, where xi, i = 1, ..., n are
+%            (m-dimensional) column vectors.
+%  U       - (N x N)-dimensional uncertainty matrix, or (n x n)-dimensional
+%            cell array of block matrices U{i,j} = cov(Xi, Xj) for i, j =
+%            1,...,n:  
+%            - If empty, the default value is U = eye(N).
+%            - If U is a cell array of size (n x 1) or (1 x n), then U is a
+%              block-diagonal matrix with its block matrices specified as U
+%              = {U11, U22, ..., Unn}.  
+%            - If U is an (n x n) cell array, its block matrices are
+%              specified as U = {U11, U12, ..., U1n; U21, U22, ..., U2n;
+%              ... ; Un1, ...,Unn}.  
+%            - As U is symmetric, Uji = Uij'. If Uji is not equal to Uij',
+%              we set Uji = Uij' for j < i. 
+%            - If any diagonal block is empty, we set Uii = eye(size(Xi)).
+%            - If any off-diagonal block Uij, i>j, is empty, we set Uij =
+%              zeros(size(Xi*Xj')) and Uji = zeros(size(Xj*Xi')). 
+%            - If any block of the cell array is a vector, it is assumed
+%              that the block is a square diagonal matrix, and we set Uij =
+%              diag(Uij).  
 %  fun     - Anonymous q-dimensional column vector function of arguments
 %            mu = {mu1, mu2, ..., mun} (i.e., the elements of the (n x 1)
 %            cell array) and beta (p-dimensional vector), where fun(mu,
 %            beta) = 0 represents the q constraints on the model parameters
 %            mu and beta.
-%  mu0     - (m x n)-dimensional matrix or n-dimensional cell vector of
+%  mu0     - (m x n)-dimensional matrix or n-dimensional cell array of
 %            m-dimensional vectors of the initial values of the parameters
-%            specified in mu. In particular, mu0 = {mu01, ..., mu0n}. If
+%            specified in mu. Alternatively, mu0 is an n-dimensional cell
+%            array of subvectors, mu0 = {mu01, ..., mu0n}. If
 %            empty, we set mu0 = {x1, ..., xn}.
 %  beta0   - The p-dimensional vector of the initial values of the
 %            parameter vector beta0.
@@ -112,6 +111,7 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %  U      = {Ux, []; [] Uy};
 %  mu0    = {x, y};
 %  beta0  = [0;1];
+%  clear options
 %  options.funDiff_mu   = @(mu,beta) {beta(2).*ones(size(mu{1})), -ones(size(mu{2}))};
 %  options.funDiff_beta = @(mu,beta) [ones(size(mu{1})), mu{1}];
 %  options.method       = 'oefpil';
@@ -136,6 +136,7 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %  mu02   = y + 0.01*randn;
 %  mu0    = {mu01 mu02};
 %  beta0  = [1 0 2]';
+%  clear options
 %  options.method = 'oefpil';
 %  options.criterion = 'parameterdifferences';
 %  result = OEFPIL(data,U,fun,mu0,beta0,options);
@@ -158,15 +159,16 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %     1.7172    1.7552   -0.1043
 %     0.1041    1.8793   -0.1497];
 %  [m,n] = size(data);
-%  mn    = m*n;
+%  N     = n*m;
 %  sigma = 0.075;
-%  U = sigma^2*eye(mn);
+%  U     = sigma^2*eye(N);
 %  fun = @(mu,beta) beta(1)*mu{1}.^2 + beta(2)*mu{2}.^2 + beta(3)*mu{3}.^2 ...
 %        + beta(4)*mu{1}.*mu{2} + beta(5)*mu{1}.*mu{3} ...
 %        + beta(6)*mu{2}.*mu{3} + beta(7)*mu{1} + beta(8)*mu{2} ...
 %        + beta(9)*mu{3} - 1;
 %  mu0  = data;
 %  beta0  = [1 1 1 0 0 0 0 0 0]';
+%  clear options
 %  options.method = 'oefpil';
 %  options.criterion = 'parameterdifferences';
 %  result = OEFPIL(data,U,fun,mu0,beta0,options);
@@ -197,7 +199,7 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %      25(11), 115001. 
 
 % Viktor Witkovsky (witkovsky@savba.sk)
-% Ver.: 06-Jan-2024 12:29:56
+% Ver.: 08-Jan-2024 16:26:20
 
 %% CHECK THE INPUTS AND OUTPUTS
 narginchk(1, 6);
@@ -292,7 +294,7 @@ xyzVec = xyz(:);
 idm = 1:m;
 
 if isempty(U)
-    U = speye(m*n);
+    U = speye(n*m);
 end
 
 if iscell(U)
