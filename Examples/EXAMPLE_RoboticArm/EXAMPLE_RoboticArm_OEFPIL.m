@@ -141,6 +141,8 @@ Target = [ ...
    600   -15   165
    600    15   165];
 
+[m,n] = size(Target);
+
 %% Fit the data by OEFPIL
 
 data = data_Position1;
@@ -171,7 +173,7 @@ beta0  = [0 0 0 0 0 0]'; % starting value of the parameters in beta
 
 options.q = 36;          % set the number of restrictions q 
 
-options.tol = 1e-13;     % set the parameter tol for higher precision
+options.tol = 1e-12;     % set the parameter tol for higher precision
 
 options.isEstimatedVariance = 1; % as we have no specific knowledge about 
                                  % the uncertainty matrix of measurement U
@@ -184,11 +186,25 @@ options.criterion = 'function';  % set the criterion for optimization
 % Fit the data by OEFPIL algorithm                                 
 result = OEFPIL(data,U,fun,mu0,beta0,options);
 
+%% Estimated parameters
 beta = result.beta;   % Estimated rotation angles and translation vector
 mu = result.mu;       % Estimated mean values of the observed data
 
+
+% Estimated translation vector [mm]
+translationEstimated = beta(4:6);
+disp(table(translationEstimated))
+
+% Estimated angles [RAD]
+anglesEstimatedRad = beta(1:3);
+disp(table(anglesEstimatedRad))
+
+% Estimated angles [DEG]
+anglesEstimatedDeg = rad2deg(anglesEstimatedRad);
+disp(table(anglesEstimatedDeg))
+
 residuals = result.residuals;
-TargetResiduals = reshape(fun(mu,beta),12,3);
+TargetResiduals = reshape(fun(mu,beta),m,n);
 EstimatedTarget = Target + TargetResiduals;
 
 %% Compare the transformed data with the target values
