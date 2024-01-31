@@ -218,7 +218,7 @@ if ~isfield(options, 'delta')
 end
 
 if ~isfield(options, 'verbose')
-    options.verbose = 'true';
+    options.verbose = true;
 end
 
 if ~isfield(options, 'isPlot')
