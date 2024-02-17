@@ -15,15 +15,15 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 % Here, the data is represented as a (m x n)-dimensional matrix or an
 % n-dimensional cell array of split (observed) subvectors x1, x2, ..., xn,
 % collectively forming the N-dimensional vector of observations x = (x1',
-% ..., xn')'. 
+% ..., xn')'.
 %
 % The covariance matrix Sigma of X = (X1',...,Xn')' is specified either by
 % the uncertainty matrix U as Sigma = U, or as proportional to the
 % uncertainty matrix U, Sigma = sigma2*U, where the uncertainty matrix U is
 % assumed to be a known (N x N)-dimensional matrix and sigma2 is considered
-% to be an unknown scalar variance parameter. U can be specified as an 
+% to be an unknown scalar variance parameter. U can be specified as an
 % (n x n) cell array of block matrices, U{i,j} = cov(Xi, Xj) for i, j =
-% 1,...,n. 
+% 1,...,n.
 %
 % SYNTAX:
 %    result = OEFPIL(data, U, fun, mu0, beta0, options)
@@ -36,22 +36,22 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %            (m-dimensional) column vectors.
 %  U       - (N x N)-dimensional uncertainty matrix, or (n x n)-dimensional
 %            cell array of block matrices U{i,j} = cov(Xi, Xj) for i, j =
-%            1,...,n:  
+%            1,...,n:
 %            - If empty, the default value is U = eye(N).
 %            - If U is a cell array of size (n x 1) or (1 x n), then U is a
 %              block-diagonal matrix with its block matrices specified as U
-%              = {U11, U22, ..., Unn}.  
+%              = {U11, U22, ..., Unn}.
 %            - If U is an (n x n) cell array, its block matrices are
 %              specified as U = {U11, U12, ..., U1n; U21, U22, ..., U2n;
-%              ... ; Un1, ...,Unn}.  
+%              ... ; Un1, ...,Unn}.
 %            - As U is symmetric, Uji = Uij'. If Uji is not equal to Uij',
-%              we set Uji = Uij' for j < i. 
+%              we set Uji = Uij' for j < i.
 %            - If any diagonal block is empty, we set Uii = eye(size(Xi)).
 %            - If any off-diagonal block Uij, i>j, is empty, we set Uij =
-%              zeros(size(Xi*Xj')) and Uji = zeros(size(Xj*Xi')). 
+%              zeros(size(Xi*Xj')) and Uji = zeros(size(Xj*Xi')).
 %            - If any block of the cell array is a vector, it is assumed
 %              that the block is a square diagonal matrix, and we set Uij =
-%              diag(Uij).  
+%              diag(Uij).
 %  fun     - Anonymous q-dimensional column vector function of arguments
 %            mu = {mu1, mu2, ..., mun} (i.e., the elements of the (n x 1)
 %            cell array) and beta (p-dimensional vector), where fun(mu,
@@ -90,7 +90,7 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %                                          % assumes that the covariance
 %                                          % matrix of measurements is
 %                                          % Sigma = sigma2*U (instead of
-%                                          % Sigma = U) and estimates 
+%                                          % Sigma = U) and estimates
 %                                          % the scalar parameter sigma2
 %
 % EXAMPLE 1 (Straight-line calibration)
@@ -187,7 +187,7 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 % [3]  Charvatova Campbell, A., Gerslova, Z., Sindlar, V., Slesinger, R.,
 %      Wimmer, G. (2024). New framework for nanoindentation curve fitting
 %      and measurement uncertainty estimation. Precision Engineering, 85,
-%      166–173. 
+%      166–173.
 % [4]  Kubacek, L. (1988). Foundations of Estimation Theory. (Elsevier).
 % [5]  Witkovsky, V., Wimmer, G. (2021). Polycal-MATLAB algorithm for
 %      comparative polynomial calibration and its applications. In AMCTM
@@ -196,10 +196,10 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %      nonlinear constraints to demodulate quadrature homodyne
 %      interferometer signals and to determine the statistical uncertainty
 %      of the interferometric phase. Measurement Science and Technology,
-%      25(11), 115001. 
+%      25(11), 115001.
 
 % Viktor Witkovsky (witkovsky@savba.sk)
-% Ver.: 08-Jan-2024 16:26:20
+% Ver.:  17-Feb-2024 14:18:25
 
 %% CHECK THE INPUTS AND OUTPUTS
 narginchk(1, 6);
@@ -406,44 +406,8 @@ crit  = 100;
 iter  = 0;
 
 %% Iterations
-if strcmpi(options.method,'oefpilvw')
-    % OEFPILVW / straightforward method suggested by VW
-    while crit > tol && iter < maxit
-        iter = iter + 1;
-        [B1,B2,b]  = OEFPIL_matrices(fun,mu0cell,beta0,options);
-        z            = -(b + B1*residuals);
-        B1UB1        = B1*U*B1';
-        B2B1UB1z     = B2'*(B1UB1\z);
-        B2B1UB1B2    = B2'*(B1UB1\B2);
-        betaDelta    = B2B1UB1B2 \ B2B1UB1z;
-        beta0        = beta0 + betaDelta;
-        zB2betaDelta = z - B2*betaDelta;
-        lambda       = B1UB1 \ zB2betaDelta;
-        muDelta      = residuals + U*B1'*lambda;
-        mu0Vec       = mu0Vec + muDelta;
-        mu0cell      = mat2cell(mu0Vec,m*ones(1,n),1);
-        residuals    = xyzVec - mu0Vec;
-        Lresiduals   = L\residuals;
-        funcritvals  = fun(mu0cell,beta0);
-        funcrit      = norm(funcritvals)/sqrt(q);
-        funcritvalsL = B1*muDelta + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(q);
-        % %%%%%%%%%%%%%%%%%%%%%
-        % Space for INNER CYCLE
-        % %%%%%%%%%%%%%%%%%%%%%
-        if strcmpi(options.criterion,'function')
-            crit  = funcrit;
-        elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(Lresiduals)/sqrt(n*m);
-        elseif strcmpi(options.criterion,'parameterdifferences')
-            crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*m+p);
-        else
-            crit  = funcrit;
-        end
-    end
-    Ubeta   = B2B1UB1B2\eye(p);
-    ubeta   = sqrt(diag(Ubeta));
-elseif any(strcmpi(options.method,{'oefpil','oefpilrs1'}))
+
+if any(strcmpi(options.method,{'oefpil','oefpilrs1'}))
     % OEFPILRS1 / method 1 by Radek Slesinger
     while crit > tol && iter < maxit
         iter = iter + 1;
@@ -541,6 +505,43 @@ elseif strcmpi(options.method,'oefpilrs2')
         Umb     = -U*B1'*Q21';
         Umubeta = [Umu Umb; Umb' Ubeta];
     end
+elseif strcmpi(options.method,'oefpilvw')
+    % OEFPILVW / straightforward method suggested by VW
+    while crit > tol && iter < maxit
+        iter = iter + 1;
+        [B1,B2,b]  = OEFPIL_matrices(fun,mu0cell,beta0,options);
+        z            = -(b + B1*residuals);
+        B1UB1        = B1*U*B1';
+        B2B1UB1z     = B2'*(B1UB1\z);
+        B2B1UB1B2    = B2'*(B1UB1\B2);
+        betaDelta    = B2B1UB1B2 \ B2B1UB1z;
+        beta0        = beta0 + betaDelta;
+        zB2betaDelta = z - B2*betaDelta;
+        lambda       = B1UB1 \ zB2betaDelta;
+        muDelta      = residuals + U*B1'*lambda;
+        mu0Vec       = mu0Vec + muDelta;
+        mu0cell      = mat2cell(mu0Vec,m*ones(1,n),1);
+        residuals    = xyzVec - mu0Vec;
+        Lresiduals   = L\residuals;
+        funcritvals  = fun(mu0cell,beta0);
+        funcrit      = norm(funcritvals)/sqrt(q);
+        funcritvalsL = B1*muDelta + B2*betaDelta + b;
+        funcritL     = norm(funcritvalsL)/sqrt(q);
+        % %%%%%%%%%%%%%%%%%%%%%
+        % Space for INNER CYCLE
+        % %%%%%%%%%%%%%%%%%%%%%
+        if strcmpi(options.criterion,'function')
+            crit  = funcrit;
+        elseif strcmpi(options.criterion,'weightedresiduals')
+            crit  = norm(Lresiduals)/sqrt(n*m);
+        elseif strcmpi(options.criterion,'parameterdifferences')
+            crit  = norm([muDelta;betaDelta]./[mu0Vec;beta0])/sqrt(n*m+p);
+        else
+            crit  = funcrit;
+        end
+    end
+    Ubeta   = B2B1UB1B2\eye(p);
+    ubeta   = sqrt(diag(Ubeta));
 else
     % OEFPILRS2 / method 2 by Radek Slesinger
     while crit > tol && iter < maxit
@@ -594,6 +595,12 @@ else
         Umubeta = [Umu Umb; Umb' Ubeta];
     end
 end
+
+% Estimated results beta and mu in different formats
+beta   = beta0;
+muVec  = mu0Vec;
+muCell = mu0cell;
+mu     = reshape(muVec,m,n);
 
 % Estimated scalar variance component sigma2 (we assume Sigma = sigma^2*U)
 sig2Hat = (Lresiduals'*Lresiduals) / (q-p);
@@ -691,19 +698,21 @@ end
 
 %% Results
 
+result.Descritpion = 'OEFPIL ESTIMATION';
 result.data    = data;
 result.xyz     = xyz;
 result.U       = U;
 result.fun     = fun;
-result.mu0     = mu0;
-result.mu      = mu0cell;
-result.beta    = beta0;
-result.sigma2  = sig2Hat;
+result.beta    = beta;
 result.ubeta   = ubeta;
 result.Ubeta   = Ubeta;
+result.mu      = mu;
+result.muCell  = muCell;
+result.muVec   = muVec;
 result.umu     = umu;
 result.Umu     = Umu;
 result.Umubeta = Umubeta;
+result.sigma2  = sig2Hat;
 result.n = n;
 result.m = m;
 result.p = p;
