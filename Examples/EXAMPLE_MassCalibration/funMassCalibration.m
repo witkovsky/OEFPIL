@@ -58,7 +58,7 @@ function fun = funMassCalibration(mu,beta)
 %  U     = diag(ux.^2);
 %  fun   = @(mu,beta) funMassCalibration(mu,beta)
 %  mu0   = data;
-%  beta0 = [mu0(10) mu0(11) mu0(10) mu0(11)]';
+%  beta0 = [0 0 0 0]';
 %  clear options
 %  options.q = 9;
 %  options.method = 'oefpil2';
