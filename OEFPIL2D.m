@@ -336,6 +336,7 @@ idB11 = [idm idm];
 idB12 = [idm m+idm];
 idF1  = [idm idm+m m+kron(ones(1,p),idm)];
 idF2  = [idm idm kron(m+idp,ones(1,m))];
+idmp  = [idm,2*m+idp];
 Q11 = [];
 Q21 = [];
 Q22 = [];
@@ -381,7 +382,7 @@ if any(strcmpi(options.method,{'oefpil','oefpilrs1'}))
         beta0 = beta0 + betaDelta;
         xResiduals = x - mu0;
         yResiduals = y - nu0;
-        LXYresiduals  = L\[xResiduals;yResiduals];
+        Lresiduals  = L\[xResiduals;yResiduals];
         funcritvals  = fun(mu0,nu0,beta0);
         funcrit      = norm(funcritvals)/sqrt(m);
         funcritvalsL = B1*munuDelta + B2*betaDelta + b;
@@ -389,7 +390,7 @@ if any(strcmpi(options.method,{'oefpil','oefpilrs1'}))
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(LXYresiduals)/sqrt(2*m);
+            crit  = norm(Lresiduals)/sqrt(2*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
             crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
         else
@@ -402,6 +403,7 @@ if any(strcmpi(options.method,{'oefpil','oefpilrs1'}))
     umunu   = sqrt(diag(Umunu));
     Umb     = -U*B1'*Q21';
     Umunubeta = [Umunu Umb; Umb' Ubeta];
+    Umubeta   = Umunubeta(idmp,idmp);
     %elseif strcmpi(options.method,'oefpil2')
 elseif strcmpi(options.method,'oefpilrs2')
     % OEFPILRS2 / method 2 by Radek Slesinger
@@ -429,7 +431,7 @@ elseif strcmpi(options.method,'oefpilrs2')
         beta0        = beta0 + betaDelta;
         xResiduals   = x - mu0;
         yResiduals   = y - nu0;
-        LXYresiduals = L\[xResiduals;yResiduals];
+        Lresiduals = L\[xResiduals;yResiduals];
         funcritvals  = fun(mu0,nu0,beta0);
         funcrit      = norm(funcritvals)/sqrt(m);
         funcritvalsL = B1*munuDelta + B2*betaDelta + b;
@@ -437,7 +439,7 @@ elseif strcmpi(options.method,'oefpilrs2')
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(LXYresiduals)/sqrt(2*m);
+            crit  = norm(Lresiduals)/sqrt(2*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
             crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
         else
@@ -455,6 +457,7 @@ elseif strcmpi(options.method,'oefpilrs2')
         umunu   = sqrt(diag(Umunu));
         Umb     = -U*B1'*Q21';
         Umunubeta = [Umunu Umb; Umb' Ubeta];
+        Umubeta   = Umunubeta(idmp,idmp);
     end
 elseif strcmpi(options.method,'jacobian')
     % method based on locally linearized model by using Jacobian matrix
@@ -482,7 +485,7 @@ elseif strcmpi(options.method,'jacobian')
         funcritL     = norm(funcritvalsL)/sqrt(m);
         xResiduals = x - mu0;
         yResiduals = y - nu0;
-        LXYresiduals  = L\[xResiduals;yResiduals];
+        Lresiduals  = L\[xResiduals;yResiduals];
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
@@ -517,7 +520,7 @@ elseif strcmpi(options.method,'oefpilvw')
         nu0          = nu0 + nuDelta;
         xResiduals   = x - mu0;
         yResiduals   = y - nu0;
-        LXYresiduals = L\[xResiduals;yResiduals];
+        Lresiduals = L\[xResiduals;yResiduals];
         funcritvals  = fun(mu0,nu0,beta0);
         funcrit      = norm(funcritvals)/sqrt(m);
         funcritvalsL = B1*munuDelta + B2*betaDelta + b;
@@ -525,7 +528,7 @@ elseif strcmpi(options.method,'oefpilvw')
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(LXYresiduals)/sqrt(2*m);
+            crit  = norm(Lresiduals)/sqrt(2*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
             crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
         else
@@ -560,7 +563,7 @@ else
         beta0        = beta0 + betaDelta;
         xResiduals   = x - mu0;
         yResiduals   = y - nu0;
-        LXYresiduals = L\[xResiduals;yResiduals];
+        Lresiduals   = L\[xResiduals;yResiduals];
         funcritvals  = fun(mu0,nu0,beta0);
         funcrit      = norm(funcritvals)/sqrt(m);
         funcritvalsL = B1*munuDelta + B2*betaDelta + b;
@@ -568,7 +571,7 @@ else
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(LXYresiduals)/sqrt(2*m);
+            crit  = norm(Lresiduals)/sqrt(2*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
             crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
         else
@@ -586,6 +589,7 @@ else
         umunu   = sqrt(diag(Umunu));
         Umb     = -U*B1'*Q21';
         Umunubeta = [Umunu Umb; Umb' Ubeta];
+        Umubeta   = Umunubeta(idmp,idmp);
     end
 end
 
@@ -597,8 +601,11 @@ munu    = [mu nu];
 munuVec = munu(:);
 munuCell = {mu nu};
 
-% Estimated scalar variance component sigma2 (we assume Sigma = sigma^2*U)
-sig2Hat = (LXYresiduals'*LXYresiduals) / (q-p);
+% Estimated chiSquaredStat and the scalar variance component sigma2 
+% (if we assume that Sigma = sigma^2*U) 
+chiSquare =  Lresiduals'*Lresiduals;
+df = q-p;
+sig2Hat = chiSquare / df;
 
 % Adjusted covariance matrix of estimators
 % premultiplied by the estimated sigma2
@@ -650,7 +657,7 @@ TABLE_info.ITERATIONS = iter;
 TABLE_info.CRITERION  = crit;
 TABLE_info.FUNCTION   = funcrit;
 TABLE_info.FUNCCRIT_LIN = funcritL;
-TABLE_info.wRSS = LXYresiduals'*LXYresiduals;
+TABLE_info.wRSS = Lresiduals'*Lresiduals;
 TABLE_info.xRSS = xResiduals'*xResiduals;
 TABLE_info.yRSS = yResiduals'*yResiduals;
 
@@ -682,23 +689,26 @@ result.munuVec   = munuVec;
 result.beta      = beta;
 result.ubeta     = ubeta;
 result.Ubeta     = Ubeta;
-result.sigma2    = sig2Hat;
 result.umunu     = umunu;
 result.Umunu     = Umunu;
 result.Umunubeta = Umunubeta;
 result.Umubeta   = Umubeta;
+result.sigma2    = sig2Hat;
 result.n = n;
 result.m = m;
 result.N = N;
 result.p = p;
 result.q = q;
+result.df = df;
+result.chiSquare = chiSquare;
+result.chiSquareValidationPval = 1-chi2cdf(chiSquare,df);
 result.options = options;
 result.muDelta = muDelta;
 result.nuDelta = nuDelta;
 result.betaDelta    = betaDelta;
 result.xResiduals   = xResiduals;
 result.yResiduals   = yResiduals;
-result.LXYresiduals = LXYresiduals;
+result.Lresiduals   = Lresiduals;
 result.funcritvals  = funcritvals;
 result.funcritvalsL = funcritvalsL;
 result.matrix.L  = L;
