@@ -93,7 +93,33 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %                                          % Sigma = U) and estimates
 %                                          % the scalar parameter sigma2
 %
-% EXAMPLE 1 (Straight-line calibration)
+% % EXAMPLE 1 (1-variate EIV model: Mass calibration)
+%  if exist('funMassCalibration','file')
+%  data  = [-9.7550e-08 -9.0350e-08  6.3200e-09 -4.7849e-07 9.4810e-08 ...
+%            3.8381e-07 -3.2604e-07 -9.3040e-08  2.3331e-07 6.4100e-07 ...
+%            1.2544e-04  3.0000e-07  3.6500e-02  3.6500e-02 3.0000e-02 ...
+%            9.9986e-01  4.8000e-05  8.0000e-01  4.0000e-01 9.0000e-01 ...
+%            1.1552e+00  5.8770e-01  8.1380e-01]';
+%  ux    = [ 5.0000e-10  3.0000e-10  2.0000e-10  3.0000e-10 3.0000e-10 ...  
+%            3.0000e-10  2.0000e-10  3.0000e-10  2.0000e-10 4.0000e-08 ...
+%            1.0000e-09  3.0000e-08  5.0000e-04  5.0000e-04 5.0000e-04 ... 
+%            5.0000e-06  2.0000e-06  1.0000e-01  1.0000e-01 1.0000e-01 ...
+%            5.0000e-04  5.0000e-04  5.0000e-04]';
+%  U     = diag(ux.^2);
+%  fun   = @(mu,beta) funMassCalibration(mu,beta)
+%  mu0   = data;
+%  beta0 = [0 0 0 0]';
+%  clear options
+%  options.q = 9;
+%  options.method = 'oefpil2';
+%  options.criterion = 'function';
+%  options.tol       = 1e-15;
+%  result = OEFPIL(data,U,fun,mu0,beta0,options);
+%  else
+%   error('! MISSING FILE: funMassCalibration.m')
+%  end
+%
+% % EXAMPLE 2 (2-variate EIV model: Straight-line calibration)
 %  x      = [4.0030 6.7160 9.3710 12.0530 15.2660 17.3510 ...
 %           20.0360 17.3690 14.7180 12.0390 9.3760 6.6970 4.0080]';
 %  y      = [0 10.1910 20.1020 30.1700 42.2300 50.0500 ...
@@ -118,7 +144,8 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %  options.criterion    = 'parameterdifferences';
 %  result = OEFPIL(data,U,fun,mu0,beta0,options);
 %
-% EXAMPLE 2 (Oliver-Phar function fit / fun(mu,nu,[0.75;-0.25;1.75]))
+% % EXAMPLE 3 (2-variate EIV model: Oliver-Phar function fit)
+% % fun(mu,nu,[0.75;-0.25;1.75]))
 %  x      = [ 0.2505    2.6846    5.1221    7.5628   10.0018 ...
 %             0.2565    2.6858    5.1255    7.5623    9.9952 ...
 %             0.2489    2.6830    5.1271    7.5603   10.0003]';
@@ -141,7 +168,7 @@ function result = OEFPIL(data,U,fun,mu0,beta0,options)
 %  options.criterion = 'parameterdifferences';
 %  result = OEFPIL(data,U,fun,mu0,beta0,options);
 %
-% EXAMPLE 3 (Ellipsoid fit)
+% % EXAMPLE 4 (3-variate EIV model: Ellipsoid fit)
 %  data = [...
 %    -1.7909    1.5814   -0.4781
 %     0.5736   -1.6966    0.6897
@@ -602,8 +629,11 @@ muVec  = mu0Vec;
 muCell = mu0cell;
 mu     = reshape(muVec,m,n);
 
-% Estimated scalar variance component sigma2 (we assume Sigma = sigma^2*U)
-sig2Hat = (Lresiduals'*Lresiduals) / (q-p);
+% Estimated chiSquaredStat and the scalar variance component sigma2 
+% (if we assume that Sigma = sigma^2*U) 
+chiSquare =  Lresiduals'*Lresiduals;
+df = q-p;
+sig2Hat = chiSquare / df;
 
 % Adjusted covariance matrix of estimators
 % premultiplied by the estimated sigma2
@@ -717,6 +747,9 @@ result.n = n;
 result.m = m;
 result.p = p;
 result.q = q;
+result.df = df;
+result.chiSquare = chiSquare;
+result.chiSquareValidationPval = 1-chi2cdf(chiSquare,df);
 result.options = options;
 result.muDelta = muDelta;
 result.betaDelta    = betaDelta;
