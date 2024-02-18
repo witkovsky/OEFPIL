@@ -60,9 +60,20 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %            options.isPlot = true;
 %            options.alpha = 0.05;
 %            options.isSparse = false;
-%            options.funDiff_mu = [];
-%            options.funDiff_nu = [];
-%            options.funDiff_beta = [];
+%            options.funDiff_mu = [];      % fun derivatives 
+%                                          % with respect to mu
+%            options.funDiff_nu = [];      % fun derivatives 
+%                                          % with respect to nu
+%            options.funDiff_beta = [];    % fun derivatives 
+%                                          % with respect to beta 
+%            options.numDiffMethod = 'standard'; % standard numeric
+%                                          % differentiation method
+%            options.numDiffMethod = 'LynnesMoller'; % Alternative numeric
+%                                          % differentiation method. Here,
+%                                          % f'(x) = imag(f(x+1i*h)/h) 
+%                                          % for small value of h    
+%            options.h = 1e-20;            % the h value for LynnesMoller
+%                                          % differentiation method
 %            options.method = 'oefpil';    % default method (oefpilrs1)
 %            options.method = 'oefpilrs1'; % method 1 by Radek Slesinger
 %            options.method = 'oefpilrs2'; % method 2 by Radek Slesinger
@@ -97,6 +108,7 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %  mu0    = x;
 %  nu0    = y;
 %  beta0  = [0;1];
+%  clear options
 %  options.funDiff_mu   = @(mu,nu,beta) beta(2).*ones(size(mu));
 %  options.funDiff_nu   = @(mu,nu,beta) -ones(size(nu));
 %  options.funDiff_beta = @(mu,nu,beta) [ones(size(mu)), mu];
@@ -122,9 +134,11 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %  mu0   = x;
 %  nu0   = y + 0.01*randn;
 %  beta0 = [1 0 2]';
-%  options.method = 'jacobian';
-%  options.funDiff_mu = @(mu,nu,beta) beta(1)*beta(3)*(mu - beta(2)).^(beta(3)-1);
-%  options.funDiff_nu = @(mu,nu,beta) - ones(size(nu));
+%  clear options
+%  options.method       = 'jacobian';
+%  options.funDiff_mu   = @(mu,nu,beta) beta(1)*beta(3) ...
+%                          *(mu - beta(2)).^(beta(3)-1);
+%  options.funDiff_nu   = @(mu,nu,beta) - ones(size(nu));
 %  options.funDiff_beta = @(mu,nu,beta) [(mu-beta(2)).^beta(3), ...
 %                       -beta(1)*beta(3)*(mu-beta(2)).^(beta(3)-1), ...
 %                        beta(1).*(mu-beta(2)).^beta(3).*log(mu-beta(2))];
@@ -159,9 +173,11 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %  mu0 = x;
 %  nu0 = y;
 %  beta0 = [0; 0; 0; 0; 1];
-%  options.method = 'oefpil';
-%  options.criterion = 'parameterdifferences';
-%  options.tol = 1e-10;
+%  clear options
+%  options.numDiffMethod = 'LynnesMoller'; 
+%  options.criterion     = 'parameterdifferences';
+%  options.method        = 'oefpilrs2';
+%  options.tol           = 1e-12;
 %  result = OEFPIL2D(x,y,{Ux,Uy,Uxy},fun,mu0,nu0,beta0,options);
 %
 % REFERENCES
@@ -188,9 +204,12 @@ function result = OEFPIL2D(x,y,U,fun,mu0,nu0,beta0,options)
 %      interferometer signals and to determine the statistical uncertainty
 %      of the interferometric phase. Measurement Science and Technology,
 %      25(11), 115001.
+% [7]  Lyness, J. N., & Moler, C. B. (1967). Numerical differentiation of
+%      analytic functions. SIAM Journal on Numerical Analysis, 4(2),
+%      202-210.  
 
 % Viktor Witkovsky (witkovsky@savba.sk)
-% Ver.:  17-Feb-2024 14:18:25
+% Ver.:  18-Feb-2024 11:42:07
 
 %% CHECK THE INPUTS AND OUTPUTS
 narginchk(2, 8);
@@ -243,6 +262,16 @@ end
 
 if ~isfield(options, 'funDiff_beta')
     options.funDiff_beta = [];
+end
+
+if ~isfield(options, 'numDiffMethod')
+    options.numDiffMethod = 'standard'; 
+    % options.numDiffMethod = 'LynnesMoller'; 
+    % options.numDiffMethod = 'LM'; 
+end
+
+if ~isfield(options, 'h')
+    options.h = 1e-20;
 end
 
 if ~isfield(options, 'method')
@@ -742,6 +771,12 @@ function [B10,B20,b0,J0] = OEFPIL_matrices(fun,mu0,nu0,beta0,options)
 %  model parameters, fun(mu,nu,beta) = 0, computed numerically by finite
 %  differences.
 %
+%  Alternativelly, if we set 'options.isNumDiffMethodLynnesMoller = true'
+%  the numerical differentiation is calculated according to the method by
+%  Lynnes and Moller (1967). In particular, the Lynnes and Moller method
+%  calculates f'(x) = imag(f(x+1i*h)/h) for very small h. The default value
+%  is set in options.h = 1e-20.
+%
 %  Moreover, if required the Jacobian matrix J of the residual vector [x -
 %  mu; y - nu ] is evaluated with respect to the parameters mu and beta. J
 %  is valid Jacobian matrix if the restriction can be expressed in explicit
@@ -752,17 +787,29 @@ function [B10,B20,b0,J0] = OEFPIL_matrices(fun,mu0,nu0,beta0,options)
 % SYNTAX
 %  [B10,B20,b0,J0] = OEFPIL_matrices(fun,mu0,nu0,beta0,options)
 %
-% EXAMPLE 1 (Straight-line EIV model)
-%  fun    = @(mu,nu,beta) beta(1) + beta(2)*mu(:) - nu;
-%  mu0    = [0.0630    0.2965    0.5321    0.7641    0.9930]';
-%  nu0    = [0.0026    0.2534    0.5066    0.7558    1.0017]';
-%  beta0  = [-0.0651 1.0744]';
-%  dim    = length(mu0);
+% EXAMPLE 1 (Standard NumDiff method / Straight-line EIV model)
+%  fun   = @(mu,beta) beta(1) + beta(2)*mu{1} - mu{2};
+%  mu01  = [0.0630    0.2965    0.5321    0.7641    0.9930]';
+%  mu02  = [0.0026    0.2534    0.5066    0.7558    1.0017]';
+%  mu0   = {mu01, mu02};
+%  beta0 = [-0.0651 1.0744]';
+%  clear options
 %  options.delta  = 1e-8;
-%  [B1,B2,b,J] = OEFPIL_matrices(fun,mu0,nu0,beta0,dim,delta)
+%  [B1,B2,b] = OEFPIL_matrices(fun,mu0,beta0,options)
+%
+% EXAMPLE 2 (Lynnes and Moller NumDiff method / Straight-line EIV model)
+%  fun   = @(mu,beta) beta(1) + beta(2)*mu{1} - mu{2};
+%  mu01  = [0.0630    0.2965    0.5321    0.7641    0.9930]';
+%  mu02  = [0.0026    0.2534    0.5066    0.7558    1.0017]';
+%  mu0   = {mu01, mu02};
+%  beta0 = [-0.0651 1.0744]';
+%  clear options
+%  options.numDiffMethod = 'LynnesMoller'
+%  options.h  = 1e-50;
+%  [B1,B2,b] = OEFPIL_matrices(fun,mu0,beta0,options)
 
 % Viktor Witkovsky (witkovsky@savba.sk)
-% Ver.: '15-Sep-2023 09:32:38'
+% Ver.: '18-Feb-2024 10:33:26'
 
 %% start gradient
 narginchk(4, 5);
@@ -788,11 +835,22 @@ if ~isfield(options, 'funDiff_beta')
     options.funDiff_beta = [];
 end
 
+if ~isfield(options, 'numDiffMethod')
+    options.numDiffMethod = 'standard'; 
+    % options.numDiffMethod = 'LynnesMoller'; 
+    % options.numDiffMethod = 'LM'; 
+end
+
+if ~isfield(options, 'h')
+    options.h = 1e-20;
+end
+
 n_mu0   = length(mu0);
 n_nu0   = length(nu0);
 n_beta0 = length(beta0);
 
 delta = options.delta;
+h       = options.h;
 funDiff_mu = options.funDiff_mu;
 funDiff_nu = options.funDiff_nu;
 funDiff_beta = options.funDiff_beta;
@@ -804,11 +862,30 @@ fun_0 = fun(mu0,nu0,beta0);
 % mu0, nu0 and beta0
 if isempty(funDiff_mu)
     dfun_mu0 = zeros(n_mu0,n_mu0);
-    for i = 1:n_mu0
-        mu0_minus = mu0; mu0_minus(i) = mu0_minus(i) - delta;
-        mu0_plus = mu0; mu0_plus(i) = mu0_plus(i) + delta;
-        dfun_mu0(:,i) = (fun(mu0_plus,nu0,beta0) - ...
-            fun(mu0_minus,nu0,beta0))/2/delta;
+    % Standard method for numerical differentiation
+    if any(strcmpi(options.numDiffMethod,...
+            {'standard','numerical','numdiff'}))
+        for i = 1:n_mu0
+            mu0_minus = mu0; mu0_minus(i) = mu0_minus(i) - delta;
+            mu0_plus = mu0; mu0_plus(i) = mu0_plus(i) + delta;
+            dfun_mu0(:,i) = real(fun(mu0_plus,nu0,beta0) - ...
+                fun(mu0_minus,nu0,beta0))/2/delta;
+        end
+        % Alternative (Lynne and Moller) method for numerical differentiation
+    elseif any(strcmpi(options.numDiffMethod,...
+            {'lynnesmoller','lm','lynnes','moller','cox','alternative'}))
+        for i = 1:n_mu0
+            mu0i = mu0; mu0i(i) = mu0i(i) + 1i * h;
+            dfun_mu0(:,i) = imag(fun(mu0i,nu0,beta0)/h);
+        end
+        % If not specified, use the standard method
+    else
+        for i = 1:n_mu0
+            mu0_minus = mu0; mu0_minus(i) = mu0_minus(i) - delta;
+            mu0_plus = mu0; mu0_plus(i) = mu0_plus(i) + delta;
+            dfun_mu0(:,i) = real(fun(mu0_plus,nu0,beta0) - ...
+                fun(mu0_minus,nu0,beta0))/2/delta;
+        end
     end
 else
     dfun_mu0 = diag(funDiff_mu(mu0,nu0,beta0));
@@ -818,11 +895,29 @@ end
 % mu0, nu0 and beta0
 if isempty(funDiff_nu)
     dfun_nu0 = zeros(n_mu0,n_nu0);
-    for i = 1:n_nu0
-        nu0_minus = nu0; nu0_minus(i) = nu0_minus(i) - delta;
-        nu0_plus = nu0; nu0_plus(i) = nu0_plus(i) + delta;
-        dfun_nu0(:,i) = (fun(mu0,nu0_plus,beta0) - ...
-            fun(mu0,nu0_minus,beta0))/2/delta;
+    % Standard method for numerical differentiation
+    if any(strcmpi(options.numDiffMethod,...
+            {'standard','numerical','numdiff'}))
+        for i = 1:n_nu0
+            nu0_minus = nu0; nu0_minus(i) = nu0_minus(i) - delta;
+            nu0_plus = nu0; nu0_plus(i) = nu0_plus(i) + delta;
+            dfun_nu0(:,i) = real(fun(mu0,nu0_plus,beta0) - ...
+                fun(mu0,nu0_minus,beta0))/2/delta;
+        end
+    elseif any(strcmpi(options.numDiffMethod,...
+            {'lynnesmoller','lm','lynnes','moller','cox','alternative'}))
+        for i = 1:n_nu0
+            nu0i = nu0; nu0i(i) = nu0i(i) + 1i * h;
+            dfun_nu0(:,i) = imag(fun(mu0,nu0i,beta0)/h);
+        end
+        % If not specified, use the standard method
+    else
+        for i = 1:n_nu0
+            nu0_minus = nu0; nu0_minus(i) = nu0_minus(i) - delta;
+            nu0_plus = nu0; nu0_plus(i) = nu0_plus(i) + delta;
+            dfun_nu0(:,i) = real(fun(mu0,nu0_plus,beta0) - ...
+                fun(mu0,nu0_minus,beta0))/2/delta;
+        end
     end
 else
     dfun_nu0 = diag(funDiff_nu(mu0,nu0,beta0));
@@ -832,26 +927,44 @@ end
 % mu0, nu0 and beta0
 if isempty(funDiff_beta)
     dfun_beta0 = zeros(n_mu0,n_beta0);
-    for i = 1:n_beta0
-        beta0_minus = beta0; beta0_minus(i) = beta0_minus(i) - delta;
-        beta0_plus = beta0; beta0_plus(i) = beta0_plus(i) + delta;
-        dfun_beta0(:,i) = (fun(mu0,nu0,beta0_plus) - ...
-            fun(mu0,nu0,beta0_minus))/2/delta;
+    % Standard method for numerical differentiation
+    if any(strcmpi(options.numDiffMethod,...
+            {'standard','numerical','numdiff'}))
+        for i = 1:n_beta0
+            beta0_minus = beta0; beta0_minus(i) = beta0_minus(i) - delta;
+            beta0_plus = beta0; beta0_plus(i) = beta0_plus(i) + delta;
+            dfun_beta0(:,i) = real(fun(mu0,nu0,beta0_plus) - ...
+                fun(mu0,nu0,beta0_minus))/2/delta;
+        end
+    elseif any(strcmpi(options.numDiffMethod,...
+            {'lynnesmoller','lm','lynnes','moller','cox','alternative'}))
+        for i = 1:n_beta0
+            beta0i = beta0; beta0i(i) = beta0i(i) + 1i * h;
+            dfun_beta0(:,i) = imag(fun(mu0,nu0,beta0i)/h);
+        end
+        % If not specified, use the standard method
+    else
+        for i = 1:n_beta0
+            beta0_minus = beta0; beta0_minus(i) = beta0_minus(i) - delta;
+            beta0_plus = beta0; beta0_plus(i) = beta0_plus(i) + delta;
+            dfun_beta0(:,i) = real(fun(mu0,nu0,beta0_plus) - ...
+                fun(mu0,nu0,beta0_minus))/2/delta;
+        end
     end
 else
     dfun_beta0  = funDiff_beta(mu0,nu0,beta0);
 end
 
 % B1 = \partial fun / \partial (mu,nu) = [funDmu0 funDnu0]
-B10 = real([dfun_mu0 dfun_nu0]);
+B10 = [dfun_mu0 dfun_nu0];
 
 % B2 = \partial fun / \partial (beta) = funDbeta0
-B20 = real(dfun_beta0);
+B20 = dfun_beta0;
 
 % b  = fun(mu0,nu0,beta0)
-b0  = real(fun_0);
+b0  = fun_0;
 
 % Jacobian matrix J = d(residual(x,y,mu,nu))/d(\mu,beta) =
 % J = [-I 0; -d(fun(\mu,nu,beta))/d(mu0)  -d(fun(\mu,nu,beta))/d(beta0)]
-J0  = real([-diag(ones(n_mu0,1)) zeros(n_mu0,n_beta0); -dfun_mu0 -dfun_beta0]);
+J0  = [-diag(ones(n_mu0,1)) zeros(n_mu0,n_beta0); -dfun_mu0 -dfun_beta0];
 end
