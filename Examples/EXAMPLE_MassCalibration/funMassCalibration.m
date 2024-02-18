@@ -60,10 +60,11 @@ function fun = funMassCalibration(mu,beta)
 %  mu0   = data;
 %  beta0 = [0 0 0 0]';
 %  clear options
-%  options.q = 9;
-%  options.method = 'oefpil2';
-%  options.criterion = 'function';
-%  options.tol       = 1e-15;
+%  options.method        = 'oefpilrs2';
+%  options.criterion     = 'function';
+%  options.numDiffMethod = 'LynnesMoller';
+%  options.q             = 9;
+%  options.tol           = 1e-15;
 %  result = OEFPIL(data,U,fun,mu0,beta0,options);
 
 % Viktor Witkovsky (witkovsky@savba.sk)
