@@ -336,6 +336,8 @@ else
     data = mat2cell(xyz,m,ones(1,n));
 end
 
+N   = m*n;
+
 if isempty(options.q)
     options.q = m;
 end
@@ -659,16 +661,17 @@ mu     = reshape(muVec,m,n);
 % (if we assume that Sigma = sigma^2*U) 
 chiSquare =  Lresiduals'*Lresiduals;
 df = q-p;
-sig2Hat = chiSquare / df;
+sigma2Hat = chiSquare / df;
+chiSquarePval = 1-chi2cdf(chiSquare,df);
 
 % Adjusted covariance matrix of estimators
 % premultiplied by the estimated sigma2
 if options.isEstimatedVariance
-    Ubeta   = sig2Hat * Ubeta;
+    Ubeta   = sigma2Hat * Ubeta;
     ubeta   = sqrt(diag(Ubeta));
-    Umu     = sig2Hat * Umu;
+    Umu     = sigma2Hat * Umu;
     umu     = sqrt(diag(Umu));
-    Umubeta = sig2Hat * Umubeta;
+    Umubeta = sigma2Hat * Umubeta;
 end
 
 mu0 = cell2mat(mu0cell);
@@ -727,17 +730,22 @@ TABLE_beta.PVAL     = 2*normcdf(-abs(beta0./ubeta));
 TABLE_beta.Properties.RowNames = string(strcat('beta_',num2str((1:p)','%-d')));
 
 TABLE_info = table;
-TABLE_info.Properties.Description = 'convergence';
+TABLE_info.Properties.Description = 'OEFPIL convergence';
+TABLE_info.N = N;
 TABLE_info.n = n;
 TABLE_info.m = m;
 TABLE_info.p = p;
 TABLE_info.q = q;
-TABLE_info.ITERATIONS   = iter;
-TABLE_info.CRITERION    = crit;
-TABLE_info.FUNCCRIT     = funcrit;
-TABLE_info.FUNCCRIT_LIN = funcritL;
-TABLE_info.wRSS = Lresiduals'*Lresiduals;
-TABLE_info.RSS  = residuals'*residuals;
+TABLE_info.ITERATIONS  = iter;
+TABLE_info.CRITERION   = crit;
+TABLE_info.CONSTRAINTS_SSE = funcrit;
+TABLE_info.OBJECTIVE_SSE   = Lresiduals'*Lresiduals;
+%TABLE_info.FUNCCRIT_LIN = funcritL;
+%TABLE_info.RSS = residuals'*residuals;
+TABLE_info.ChiSquare_Stat = chiSquare;
+TABLE_info.df = df;
+TABLE_info.ChiSquare_Pval = chiSquarePval;
+TABLE_info.sigma2Hat = sigma2Hat;
 
 %% SHOW TABLE
 
@@ -768,14 +776,15 @@ result.muVec   = muVec;
 result.umu     = umu;
 result.Umu     = Umu;
 result.Umubeta = Umubeta;
-result.sigma2  = sig2Hat;
+result.sigma2Hat = sigma2Hat;
+result.N = N;
 result.n = n;
 result.m = m;
 result.p = p;
 result.q = q;
 result.df = df;
 result.chiSquare = chiSquare;
-result.chiSquareValidationPval = 1-chi2cdf(chiSquare,df);
+result.chiSquarePval = chiSquarePval;
 result.options = options;
 result.muDelta = muDelta;
 result.betaDelta    = betaDelta;
