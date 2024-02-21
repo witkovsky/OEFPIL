@@ -413,15 +413,15 @@ if any(strcmpi(options.method,{'oefpil','oefpilrs1'}))
         yResiduals = y - nu0;
         Lresiduals  = L\[xResiduals;yResiduals];
         funcritvals  = fun(mu0,nu0,beta0);
-        funcrit      = norm(funcritvals)/sqrt(m);
+        funcrit      = norm(funcritvals)/sqrt(q);
         funcritvalsL = B1*munuDelta + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(m);
+        funcritL     = norm(funcritvalsL)/sqrt(q);
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(Lresiduals)/sqrt(2*m);
+            crit  = norm(Lresiduals)/sqrt(N);
         elseif strcmpi(options.criterion,'parameterdifferences')
-            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
+            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(N+p);
         else
             crit  = funcrit;
         end
@@ -462,15 +462,15 @@ elseif strcmpi(options.method,'oefpilrs2')
         yResiduals   = y - nu0;
         Lresiduals = L\[xResiduals;yResiduals];
         funcritvals  = fun(mu0,nu0,beta0);
-        funcrit      = norm(funcritvals)/sqrt(m);
+        funcrit      = norm(funcritvals)/sqrt(q);
         funcritvalsL = B1*munuDelta + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(m);
+        funcritL     = norm(funcritvalsL)/sqrt(q);
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(Lresiduals)/sqrt(2*m);
+            crit  = norm(Lresiduals)/sqrt(N);
         elseif strcmpi(options.criterion,'parameterdifferences')
-            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
+            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(N+p);
         else
             crit  = funcrit;
         end
@@ -509,9 +509,9 @@ elseif strcmpi(options.method,'jacobian')
         funcritvals  = fun(mu0,nu0,beta0);
         nuDelta = funcritvals;
         nu0   = nu0 + nuDelta;
-        funcrit      = norm(funcritvals)/sqrt(m);
+        funcrit      = norm(funcritvals)/sqrt(q);
         funcritvalsL = B1*[muDelta;nuDelta] + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(m);
+        funcritL     = norm(funcritvalsL)/sqrt(q);
         xResiduals = x - mu0;
         yResiduals = y - nu0;
         Lresiduals  = L\[xResiduals;yResiduals];
@@ -551,15 +551,15 @@ elseif strcmpi(options.method,'oefpilvw')
         yResiduals   = y - nu0;
         Lresiduals = L\[xResiduals;yResiduals];
         funcritvals  = fun(mu0,nu0,beta0);
-        funcrit      = norm(funcritvals)/sqrt(m);
+        funcrit      = norm(funcritvals)/sqrt(q);
         funcritvalsL = B1*munuDelta + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(m);
+        funcritL     = norm(funcritvalsL)/sqrt(q);
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
-            crit  = norm(Lresiduals)/sqrt(2*m);
+            crit  = norm(Lresiduals)/sqrt(N);
         elseif strcmpi(options.criterion,'parameterdifferences')
-            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
+            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(N+p);
         else
             crit  = funcrit;
         end
@@ -594,15 +594,15 @@ else
         yResiduals   = y - nu0;
         Lresiduals   = L\[xResiduals;yResiduals];
         funcritvals  = fun(mu0,nu0,beta0);
-        funcrit      = norm(funcritvals)/sqrt(m);
+        funcrit      = norm(funcritvals);
         funcritvalsL = B1*munuDelta + B2*betaDelta + b;
-        funcritL     = norm(funcritvalsL)/sqrt(m);
+        funcritL     = norm(funcritvalsL);
         if strcmpi(options.criterion,'function')
             crit  = funcrit;
         elseif strcmpi(options.criterion,'weightedresiduals')
             crit  = norm(Lresiduals)/sqrt(2*m);
         elseif strcmpi(options.criterion,'parameterdifferences')
-            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(2*m+p);
+            crit  = norm([muDelta;nuDelta;betaDelta]./[mu0;nu0;beta0])/sqrt(N+p);
         else
             crit  = funcrit;
         end
@@ -632,18 +632,20 @@ munuCell = {mu nu};
 
 % Estimated chiSquaredStat and the scalar variance component sigma2 
 % (if we assume that Sigma = sigma^2*U) 
+residuals = [xResiduals;yResiduals];
 chiSquare =  Lresiduals'*Lresiduals;
 df = q-p;
-sig2Hat = chiSquare / df;
+sigma2Hat = chiSquare / df;
+chiSquarePval = 1-chi2cdf(chiSquare,df);
 
 % Adjusted covariance matrix of estimators
 % premultiplied by the estimated sigma2
 if options.isEstimatedVariance
-    Ubeta   = sig2Hat * Ubeta;
+    Ubeta   = sigma2Hat * Ubeta;
     ubeta   = sqrt(diag(Ubeta));
-    Umunu   = sig2Hat * Umunu;
+    Umunu   = sigma2Hat * Umunu;
     umunu   = sqrt(diag(Umunu));
-    Umunubeta = sig2Hat * Umunubeta;
+    Umunubeta = sigma2Hat * Umunubeta;
 end
 
 tictoc = toc;
@@ -677,18 +679,25 @@ TABLE_beta.PVAL     = 2*normcdf(-abs(beta0./ubeta));
 TABLE_beta.Properties.RowNames = string(strcat('beta_',num2str((1:p)','%-d')));
 
 TABLE_info = table;
-TABLE_info.Properties.Description = 'convergence';
+TABLE_info.Properties.Description = 'OEFPIL convergence';
+TABLE_info.N = N;
 TABLE_info.n = n;
 TABLE_info.m = m;
 TABLE_info.p = p;
 TABLE_info.q = q;
-TABLE_info.ITERATIONS = iter;
-TABLE_info.CRITERION  = crit;
-TABLE_info.FUNCTION   = funcrit;
-TABLE_info.FUNCCRIT_LIN = funcritL;
-TABLE_info.wRSS = Lresiduals'*Lresiduals;
-TABLE_info.xRSS = xResiduals'*xResiduals;
-TABLE_info.yRSS = yResiduals'*yResiduals;
+TABLE_info.ITERATIONS  = iter;
+TABLE_info.CRITERION   = crit;
+TABLE_info.CONSTRAINTS_SSE = funcrit;
+TABLE_info.OBJECTIVE_SSE   = Lresiduals'*Lresiduals;
+%TABLE_info.FUNCCRIT_LIN = funcritL;
+%TABLE_info.RSS = residuals'*residuals;
+%TABLE_info.xRSS = xResiduals'*xResiduals;
+%TABLE_info.yRSS = yResiduals'*yResiduals;
+TABLE_info.ChiSquare_Stat = chiSquare;
+TABLE_info.df = df;
+TABLE_info.ChiSquare_Pval = chiSquarePval;
+TABLE_info.sigma2Hat = sigma2Hat;
+
 
 %% SHOW TABLE
 
@@ -722,21 +731,22 @@ result.umunu     = umunu;
 result.Umunu     = Umunu;
 result.Umunubeta = Umunubeta;
 result.Umubeta   = Umubeta;
-result.sigma2    = sig2Hat;
+result.sigma2    = sigma2Hat;
+result.N = N;
 result.n = n;
 result.m = m;
-result.N = N;
 result.p = p;
 result.q = q;
 result.df = df;
 result.chiSquare = chiSquare;
-result.chiSquareValidationPval = 1-chi2cdf(chiSquare,df);
+result.chiSquarePval = chiSquarePval;
 result.options = options;
 result.muDelta = muDelta;
 result.nuDelta = nuDelta;
 result.betaDelta    = betaDelta;
 result.xResiduals   = xResiduals;
 result.yResiduals   = yResiduals;
+result.residuals    = residuals;
 result.Lresiduals   = Lresiduals;
 result.funcritvals  = funcritvals;
 result.funcritvalsL = funcritvalsL;
