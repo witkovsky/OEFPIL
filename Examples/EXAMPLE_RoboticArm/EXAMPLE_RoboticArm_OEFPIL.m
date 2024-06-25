@@ -281,7 +281,7 @@ Translation = ones(m,1)*translation';
 
 %%  Compare XYZmeanTransformed coordinate points with the target points
 
-Means_XYZ  = [mu{1} mu{2} mu{3}];
+Means_XYZ  = mu;
 TransformedMeans = (Means_XYZ - Translation) * RotationMatrix;
 
 Tab1 = table(Target);
