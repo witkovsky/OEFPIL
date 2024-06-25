@@ -6,7 +6,7 @@ close all
 
 %% LOAD DATA
 
-load DATA_OliverPharr;
+load DATA_OliverPharr.mat;
 
 %%  Set measurements x and y and uncertainty matrix
 
