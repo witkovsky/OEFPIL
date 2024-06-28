@@ -81,7 +81,7 @@ result = OEFPIL({x,y},U,fun,mu0,beta0,options);
 %% Observed vs. True vs. Fitted Values
 
 figure
-plot(x,y,'*',mu,nu,'o',result.mu{1},result.mu{2},'+')
+plot(x,y,'*',mu,nu,'o',result.muCell{1},result.muCell{2},'+')
 xlabel('x')
 ylabel('y')
 title('Observed vs. True vs. Fitted Values')
