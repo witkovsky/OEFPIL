@@ -53,7 +53,7 @@ yy = fun({xx,xx},result.beta) + xx;
 figure
 plot(x,y,'*')
 hold on
-plot(result.mu{1},result.mu{2},'o')
+plot(result.muCell{1},result.muCell{2},'o')
 plot(xx,yy,'-')
 grid on
 xlabel('x')
